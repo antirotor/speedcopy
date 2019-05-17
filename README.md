@@ -1,7 +1,7 @@
 speedcopy
 =========
 
-[![Build status](https://travis-ci.org/antirotor/travis-lab.svg?master)](https://travis-ci.org/antirotor)
+[![Build Status](https://travis-ci.com/antirotor/speedcopy.svg?branch=master)](https://travis-ci.com/antirotor/speedcopy)
 
 Patched python shutil.copyfile using xcopy on windows to accelerate transfer on windows shares.
 
