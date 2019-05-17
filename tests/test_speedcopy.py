@@ -11,16 +11,16 @@ def teadown_function(function):
     speedcopy.unpatch_copyfile()
 
 
-def test_copy(tmp_path):
-    src = tmp_path / "source"
-    dst = tmp_path / "destination"
+def test_copy(tmpdir):
+    src = tmpdir.join("source")
+    dst = tmpdir.join("destination")
     with open(src, "wb") as f:
         f.write(os.urandom(5 * 1024 * 1024))
     f.close()
 
-    shutil.copyfile(src.as_posix(), dst.as_posix())
+    shutil.copyfile(src, dst)
 
-    assert os.path.isfile(dst.as_posix())
+    assert os.path.isfile(dst)
 
 
 def test_patch():
