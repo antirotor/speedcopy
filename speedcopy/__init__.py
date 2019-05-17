@@ -1,6 +1,6 @@
 """
 Speed up shutil.copyfile by using sendfile system call and robocopy for
-windows
+windows. Based on `pyfastcopy`, extending it to windows.
 """
 
 __version__ = "1.0.0"

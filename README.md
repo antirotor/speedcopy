@@ -6,3 +6,5 @@ Patched python shutil.copyfile using xcopy on windows to accelerate transfer on 
 Using ``xcopy`` on windows to server-side copy on network shares where enabled.
 
 See https://wiki.samba.org/index.php/Server-Side_Copy
+
+It is based on `pyfastcopy` so it should accelerate copying on linux too.
