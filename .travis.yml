@@ -1,7 +1,8 @@
 language: python
 os:
     - linux
-    - windows
+# Windows and python are not supported yet on Travis-CI
+#   - windows
 python:
   - "2.7"
   - "3.6"
