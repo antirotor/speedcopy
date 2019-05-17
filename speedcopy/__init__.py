@@ -130,6 +130,17 @@ else:
         return dst
 
 
-if shutil.copyfile != copyfile:
-    shutil._orig_copyfile = shutil.copyfile
-    shutil.copyfile = copyfile
+def patch_copyfile():
+    """
+    Used to monkey patch shutil.copyfile()
+    """
+    if shutil.copyfile != copyfile:
+        shutil._orig_copyfile = shutil.copyfile
+        shutil.copyfile = copyfile
+
+
+def unpatch_copyfile():
+    """
+    Restore original function
+    """
+    shutil.copyfile = shutil._orig_copyfile

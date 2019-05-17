@@ -3,6 +3,14 @@ import speedcopy
 import os
 
 
+def setup_function(function):
+    speedcopy.patch_copyfile()
+
+
+def teadown_function(function):
+    speedcopy.unpatch_copyfile()
+
+
 def test_copy(tmp_path):
     src = tmp_path / "source"
     dst = tmp_path / "destination"
@@ -13,3 +21,12 @@ def test_copy(tmp_path):
     shutil.copyfile(src.as_posix(), dst.as_posix())
 
     assert os.path.isfile(dst.as_posix())
+
+
+def test_patch():
+    assert shutil.copyfile == speedcopy.copyfile
+
+
+def test_unpatch():
+    speedcopy.unpatch_copyfile()
+    assert shutil.copyfile == shutil._orig_copyfile
