@@ -1,8 +1,13 @@
 language: python
+os:
+    - linux
+    - windows
 python:
   - "2.7"
   - "3.6"
 cache: pip
+install:
+  - pip install pysendfile
 before_script:
   - export PYTHONPATH=$PYTHONPATH:$(pwd)
 script:
