@@ -14,13 +14,13 @@ def teadown_function(function):
 def test_copy(tmpdir):
     src = tmpdir.join("source")
     dst = tmpdir.join("destination")
-    with open(src, "wb") as f:
+    with open(str(src), "wb") as f:
         f.write(os.urandom(5 * 1024 * 1024))
     f.close()
 
-    shutil.copyfile(src, dst)
+    shutil.copyfile(str(src), str(dst))
 
-    assert os.path.isfile(dst)
+    assert os.path.isfile(str(dst))
 
 
 def test_patch():
