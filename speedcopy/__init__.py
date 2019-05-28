@@ -90,10 +90,22 @@ else:
         as robocopy is probably faster, but robocopy doesn't support renaming
         destination file when copying just one file :( Shame on you Microsoft.
         """
-        from subprocess import call, DEVNULL
+        from subprocess import call
+        
+        try:
+            # Python 3.3+
+            from subprocess import DEVNULL
+        except ImportError:
+            # Backwards compatibility
+            DEVNULL = open(os.devnull, 'w')
+        
         # from pathlib import Path, PureWindowsPath
         if shutil._samefile(src, dst):
-            raise shutil.SameFileError(
+        
+            # Get shutil.SameFileError if available (Python 3.4+)
+            # else fall back to original behavior using shutil.Error
+            SameFileError = getattr(shutil, "SameFileError", shutil.Error)
+            raise SameFileError(
                 "{!r} and {!r} are the same file".format(src, dst))
 
         for fn in [src, dst]:
