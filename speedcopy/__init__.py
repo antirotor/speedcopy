@@ -2,11 +2,6 @@
 Speed up shutil.copyfile by using sendfile system call and robocopy for
 windows. Based on `pyfastcopy`, extending it to windows.
 """
-
-__version__ = "1.0.0"
-__author__ = "annatar"
-__license__ = "MIT"
-
 import errno
 import os
 import shutil
