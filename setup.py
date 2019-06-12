@@ -36,5 +36,6 @@ setup(name='speedcopy',
       url='https://github.com/antirotor/speedcopy',
       long_description=long_description,
       long_description_content_type='text/markdown',
+	  packages=['speedcopy'],
 	  classifiers=classifiers
       )
