@@ -22,6 +22,7 @@ if __name__ == "__main__":
     try:
         dir = sys.argv[1]
     except:
+        print("pass destination directory as an argument if you want")
         dir = None
 
     with tempfile.TemporaryDirectory(dir=dir) as tmp_dir:
@@ -36,7 +37,7 @@ if __name__ == "__main__":
                 for use_fast_copy in (False, True):
                     print(">>> with%s speedcopy ..." % ("" if use_fast_copy else "out"))
                     v = timeit.repeat(
-                        setup=("import shutil; import speedcopy; "
+                        setup=("import shutil; import speedcopy; speedcopy.patch_copyfile(); "
                                "p1 = {}; p2 = {}").format(repr(src), repr(dst)),
                         stmt="shutil.{}(p1, p2)".format(
                             "copyfile" if use_fast_copy else "_orig_copyfile"),
