@@ -15,6 +15,58 @@ if not sys.platform.startswith("win32"):
     except AttributeError:
         import sendfile
         _sendfile = sendfile.sendfile
+    from fcntl import ioctl
+    import ctypes
+
+    _IOC_NRBITS = 8
+    _IOC_TYPEBITS = 8
+    _IOC_SIZEBITS = 14
+    _IOC_DIRBITS = 2
+
+    _IOC_NRMASK = (1 << _IOC_NRBITS) - 1
+    _IOC_TYPEMASK = (1 << _IOC_TYPEBITS) - 1
+    _IOC_SIZEMASK = (1 << _IOC_SIZEBITS) - 1
+    _IOC_DIRMASK = (1 << _IOC_DIRBITS) - 1
+
+    _IOC_NRSHIFT = 0
+    _IOC_TYPESHIFT = _IOC_NRSHIFT + _IOC_NRBITS
+    _IOC_SIZESHIFT = _IOC_TYPESHIFT + _IOC_TYPEBITS
+    _IOC_DIRSHIFT = _IOC_SIZESHIFT + _IOC_SIZEBITS
+
+    IOC_NONE = 0
+    IOC_WRITE = 1
+    IOC_READ = 2
+
+    def IOC_TYPECHECK(t):
+        """
+        Returns the size of given type, and check its suitability for use in an
+        ioctl command number.
+        """
+        result = ctypes.sizeof(t)
+        assert result <= _IOC_SIZEMASK, result
+        return result
+
+    def IOC(dir, type, nr, size):
+        """
+        dir
+            One of IOC_NONE, IOC_WRITE, IOC_READ, or IOC_READ|IOC_WRITE.
+            Direction is from the application's point of view, not kernel's.
+        size (14-bits unsigned integer)
+            Size of the buffer passed to ioctl's "arg" argument.
+        """
+        assert dir <= _IOC_DIRMASK, dir
+        assert type <= _IOC_TYPEMASK, type
+        assert nr <= _IOC_NRMASK, nr
+        assert size <= _IOC_SIZEMASK, size
+        return (dir << _IOC_DIRSHIFT) | (type << _IOC_TYPESHIFT) | (nr << _IOC_NRSHIFT) | (size << _IOC_SIZESHIFT)  # noqa: E501
+
+    def IOW(type, nr, size):
+        """
+        An ioctl with write parameters.
+        size (ctype type or instance)
+            Type/structure of the argument passed to ioctl's "arg" argument.
+        """
+        return IOC(IOC_WRITE, type, nr, IOC_TYPECHECK(size))
 
     # errnos sendfile can set if not supported on the system
     _sendfile_err_codes = {code for code, name in errno.errorcode.items()
@@ -69,12 +121,19 @@ if not sys.platform.startswith("win32"):
         if not follow_symlinks and os.path.islink(src):
             os.symlink(os.readlink(src), dst)
         else:
+            CIFS_IOCTL_MAGIC = 0xCF
+            CIFS_IOC_COPYCHUNK_FILE = IOW(CIFS_IOCTL_MAGIC, 3, int)
             with open(src, 'rb') as fsrc, open(dst, 'wb') as fdst:
-                # Try to use sendfile if available for performance
-                if not _copyfile_sendfile(fsrc, fdst):
-                    # sendfile is not available or failed, fallback
-                    # to copyfileobj
-                    shutil.copyfileobj(fsrc, fdst)
+                # try copy file with COW support on Linux. If fail, fallback
+                # to sendfile and if this is not available too, fallback
+                # copyfileobj.
+                ret = ioctl(fdst, CIFS_IOC_COPYCHUNK_FILE, fsrc)
+                if ret != 0:
+                    # Try to use sendfile if available for performance
+                    if not _copyfile_sendfile(fsrc, fdst):
+                        # sendfile is not available or failed, fallback
+                        # to copyfileobj
+                        shutil.copyfileobj(fsrc, fdst)
         return dst
 
 else:
