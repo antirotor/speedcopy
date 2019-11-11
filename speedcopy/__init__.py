@@ -123,7 +123,7 @@ if not sys.platform.startswith("win32"):
             os.symlink(os.readlink(src), dst)
         else:
             CIFS_IOCTL_MAGIC = 0xCF
-            CIFS_IOC_COPYCHUNK_FILE = IOW(CIFS_IOCTL_MAGIC, 3, c_int)
+            CIFS_IOC_COPYCHUNK_FILE = IOW(CIFS_IOCTL_MAGIC.value, 3, c_int)
             with open(src, 'rb') as fsrc, open(dst, 'wb') as fdst:
                 # try copy file with COW support on Linux. If fail, fallback
                 # to sendfile and if this is not available too, fallback
