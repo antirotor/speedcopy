@@ -17,6 +17,7 @@ if not sys.platform.startswith("win32"):
         _sendfile = sendfile.sendfile
     from fcntl import ioctl
     import ctypes
+    from ctypes import c_int
 
     _IOC_NRBITS = 8
     _IOC_TYPEBITS = 8
@@ -122,7 +123,7 @@ if not sys.platform.startswith("win32"):
             os.symlink(os.readlink(src), dst)
         else:
             CIFS_IOCTL_MAGIC = 0xCF
-            CIFS_IOC_COPYCHUNK_FILE = IOW(CIFS_IOCTL_MAGIC, 3, int)
+            CIFS_IOC_COPYCHUNK_FILE = IOW(CIFS_IOCTL_MAGIC, 3, c_int)
             with open(src, 'rb') as fsrc, open(dst, 'wb') as fdst:
                 # try copy file with COW support on Linux. If fail, fallback
                 # to sendfile and if this is not available too, fallback
