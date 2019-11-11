@@ -80,23 +80,17 @@ if not sys.platform.startswith("win32"):
 else:
     def copyfile(src, dst, follow_symlinks=True):
         """Copy data from src to dst.
-        It uses windows `xcopy` method to do so, making advantage of
-        server-side copy where available. Different other methods can be used
-        as robocopy is probably faster, but robocopy doesn't support renaming
-        destination file when copying just one file :( Shame on you Microsoft.
+        It uses windows native CopyFileW method to do so, making advantage of
+        server-side copy where available.
         """
-        from subprocess import call
-        
-        try:
-            # Python 3.3+
-            from subprocess import DEVNULL
-        except ImportError:
-            # Backwards compatibility
-            DEVNULL = open(os.devnull, 'w')
-        
-        # from pathlib import Path, PureWindowsPath
+        from ctypes import windll, c_wchar_p, c_int
+
+        kernel32 = windll.kernel32
+        copy_file_w = kernel32.CopyFileW
+        copy_file_w.argtypes = (c_wchar_p, c_wchar_p, c_int)
+        copy_file_w.restype = c_int
+
         if shutil._samefile(src, dst):
-        
             # Get shutil.SameFileError if available (Python 3.4+)
             # else fall back to original behavior using shutil.Error
             SameFileError = getattr(shutil, "SameFileError", shutil.Error)
@@ -117,23 +111,11 @@ else:
         if not follow_symlinks and os.path.islink(src):
             os.symlink(os.readlink(src), dst)
         else:
-            # call(["xcopy", src, dst], stdin=DEVNULL, stdout=DEVNULL)
+            ret = copy_file_w(src, dst, False)
 
-            cmd = ["echo", "f", "|", "xcopy", "/y", "/h", "/r",
-                   src.replace('/', '\\'), dst.replace('/', '\\')]
-            # cmd = ["copy", "/B", "/Y",
-            #        src.replace('/', '\\'), dst.replace('/', '\\')]
-            call(cmd, stdin=DEVNULL, stdout=DEVNULL, shell=True)
-
-            # call(["robocopy",
-            #       os.path.dirname(src),
-            #       os.path.dirname(dst),
-            #       os.path.basename(src),
-            #       "/njh", "/njs", "/ndl", "/nc", "/ns", "/nfl"])
-            # os.rename(os.path.join(
-            #     os.path.dirname(dst), os.path.basename(src)),
-            #     dst)
-            # call(["copy", src, dst, "/B", "/Y"])
+            if ret != 0:
+                raise IOError(
+                    "File {!r} copy failed, error: {}".format(src, ret))
         return dst
 
 
