@@ -10,63 +10,64 @@ import ctypes.util
 libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
 
 
-class Fs_types():
+class Fs_types:
     # Constants for filesystem magic
     # https://www.gnu.org/software/coreutils/filesystems.html
-    ADFS_SUPER_MAGIC       = 0xadf5
-    AFFS_SUPER_MAGIC       = 0xADFF
-    BEFS_SUPER_MAGIC       = 0x42465331
-    BFS_MAGIC              = 0x1BADFACE
-    CIFS_MAGIC_NUMBER      = 0xFF534D42
-    CODA_SUPER_MAGIC       = 0x73757245
-    COH_SUPER_MAGIC        = 0x012FF7B7
-    CRAMFS_MAGIC           = 0x28cd3d45
-    DEVFS_SUPER_MAGIC      = 0x1373
-    EFS_SUPER_MAGIC        = 0x00414A53
-    EXT_SUPER_MAGIC        = 0x137D
-    EXT2_OLD_SUPER_MAGIC   = 0xEF51
-    EXT2_SUPER_MAGIC       = 0xEF53
-    EXT3_SUPER_MAGIC       = 0xEF53
-    HFS_SUPER_MAGIC        = 0x4244
-    HPFS_SUPER_MAGIC       = 0xF995E849
-    HUGETLBFS_MAGIC        = 0x958458f6
-    ISOFS_SUPER_MAGIC      = 0x9660
-    JFFS2_SUPER_MAGIC      = 0x72b6
-    JFS_SUPER_MAGIC        = 0x3153464a
-    MINIX_SUPER_MAGIC      = 0x137F # orig. minix
-    MINIX_SUPER_MAGIC2     = 0x138F # 30 char minix
-    MINIX2_SUPER_MAGIC     = 0x2468 # minix V2
-    MINIX2_SUPER_MAGIC2    = 0x2478 # minix V2, 30 char names
-    MSDOS_SUPER_MAGIC      = 0x4d44
-    NCP_SUPER_MAGIC        = 0x564c
-    NFS_SUPER_MAGIC        = 0x6969
-    NTFS_SB_MAGIC          = 0x5346544e
-    OPENPROM_SUPER_MAGIC   = 0x9fa1
-    PROC_SUPER_MAGIC       = 0x9fa0
-    QNX4_SUPER_MAGIC       = 0x002f
-    REISERFS_SUPER_MAGIC   = 0x52654973
-    ROMFS_MAGIC            = 0x7275
-    SMB_SUPER_MAGIC        = 0x517B
-    SYSV2_SUPER_MAGIC      = 0x012FF7B6
-    SYSV4_SUPER_MAGIC      = 0x012FF7B5
-    TMPFS_MAGIC            = 0x01021994
-    UDF_SUPER_MAGIC        = 0x15013346
-    UFS_MAGIC              = 0x00011954
-    USBDEVICE_SUPER_MAGIC  = 0x9fa2
-    VXFS_SUPER_MAGIC       = 0xa501FCF5
-    XENIX_SUPER_MAGIC      = 0x012FF7B4
-    XFS_SUPER_MAGIC        = 0x58465342
-    _XIAFS_SUPER_MAGIC     = 0x012FD16D
+    filesystems = {
+        "ADFS_SUPER_MAGIC": 0xadf5,
+        "AFFS_SUPER_MAGIC": 0xADFF,
+        "BEFS_SUPER_MAGIC": 0x42465331,
+        "BFS_MAGIC": 0x1BADFACE,
+        "CIFS_MAGIC_NUMBER": 0xFF534D42,
+        "CODA_SUPER_MAGIC": 0x73757245,
+        "COH_SUPER_MAGIC": 0x012FF7B7,
+        "CRAMFS_MAGIC": 0x28cd3d45,
+        "DEVFS_SUPER_MAGIC": 0x1373,
+        "EFS_SUPER_MAGIC": 0x00414A53,
+        "EXT_SUPER_MAGIC": 0x137D,
+        "EXT2_OLD_SUPER_MAGIC": 0xEF51,
+        "EXT2_SUPER_MAGIC": 0xEF53,
+        "EXT3_SUPER_MAGIC": 0xEF53,
+        "HFS_SUPER_MAGIC": 0x4244,
+        "HPFS_SUPER_MAGIC": 0xF995E849,
+        "HUGETLBFS_MAGIC": 0x958458f6,
+        "ISOFS_SUPER_MAGIC": 0x9660,
+        "JFFS2_SUPER_MAGIC": 0x72b6,
+        "JFS_SUPER_MAGIC": 0x3153464a,
+        "MINIX_SUPER_MAGIC": 0x137F, # orig. minix
+        "MINIX_SUPER_MAGIC2": 0x138F, # 30 char minix
+        "MINIX2_SUPER_MAGIC": 0x2468, # minix V2
+        "MINIX2_SUPER_MAGIC2": 0x2478, # minix V2, 30 char names
+        "MSDOS_SUPER_MAGIC": 0x4d44,
+        "NCP_SUPER_MAGIC": 0x564c,
+        "NFS_SUPER_MAGIC": 0x6969,
+        "NTFS_SB_MAGIC": 0x5346544e,
+        "OPENPROM_SUPER_MAGIC": 0x9fa1,
+        "PROC_SUPER_MAGIC": 0x9fa0,
+        "QNX4_SUPER_MAGIC": 0x002f,
+        "REISERFS_SUPER_MAGIC": 0x52654973,
+        "ROMFS_MAGIC": 0x7275,
+        "SMB_SUPER_MAGIC": 0x517B,
+        "SYSV2_SUPER_MAGIC": 0x012FF7B6,
+        "SYSV4_SUPER_MAGIC": 0x012FF7B5,
+        "TMPFS_MAGIC": 0x01021994,
+        "UDF_SUPER_MAGIC": 0x15013346,
+        "UFS_MAGIC": 0x00011954,
+        "USBDEVICE_SUPER_MAGIC": 0x9fa2,
+        "VXFS_SUPER_MAGIC": 0xa501FCF5,
+        "XENIX_SUPER_MAGIC": 0x012FF7B4,
+        "XFS_SUPER_MAGIC": 0x58465342,
+        "_XIAFS_SUPER_MAGIC": 0x012FD16D
+    }
 
     types = {}
 
     def __init__(self):
-
-        for name in self.__dict__:
+        for name, value in self.filesystems.items():
             if name.endswith('MAGIC'):
                 hname = name[:-6]
                 hname = hname.replace('_SUPER', '')
-                _types[eval(name)] = hname
+                self.types[value] = hname
 
 
 class statfs_t(ctypes.Structure):
@@ -110,54 +111,53 @@ class FilesystemInfo():
 
 
     def statfs(self, path):
-      """
-      The function statfs() returns information about a mounted file system.
-      Args:
-        path: is the pathname of any file within the mounted file system.
-      Returns:
-        Returns a statfs_t object.
-      """
-      buf = statfs_t()
-      err = self._statfs(path, ctypes.byref(buf))
-      if err == -1:
-        errno = ctypes.get_errno()
-        raise OSError(errno, '%s path: %r' % (os.strerror(errno), path))
-      return buf
-
+        """
+        The function statfs() returns information about a mounted file system.
+        Args:
+            path: is the pathname of any file within the mounted file system.
+        Returns:
+            Returns a statfs_t object.
+        """
+        buf = statfs_t()
+        err = self._statfs(path, ctypes.byref(buf))
+        if err == -1:
+            errno = ctypes.get_errno()
+            raise OSError(errno, '%s path: %r' % (os.strerror(errno), path))
+        return buf
 
     def fstatfs(self, fd):
-      """
-      The fuction fstatfs() returns information about a mounted file ssytem.
-      Args:
-        fd: A file descriptor.
-      Returns:
-        Returns a statfs_t object.
-      """
-      buf = statfs_t()
-      fileno = fd.fileno()
-      assert fileno
-      err = self._fstatfs(fileno, ctypes.byref(buf))
-      if err == -1:
-        errno = ctypes.get_errno()
-        raise OSError(errno, os.strerror(errno))
-      return buf
-
+        """
+        The fuction fstatfs() returns information about a mounted file ssytem.
+        Args:
+            fd: A file descriptor.
+        Returns:
+            Returns a statfs_t object.
+        """
+        buf = statfs_t()
+        fileno = fd.fileno()
+        assert fileno
+        err = self._fstatfs(fileno, ctypes.byref(buf))
+        if err == -1:
+            errno = ctypes.get_errno()
+            raise OSError(errno, os.strerror(errno))
+        return buf
 
     def filesystem(self, path_or_fd):
-      """
-      Get the filesystem type a file/path is on.
-      Args:
-        path_or_fd: A string path or an object which has a fileno function.
-      Returns:
-       A string name of the file system.
-      """
-      if hasattr(path_or_fd, 'fileno'):
-        buf = self.fstatfs(path_or_fd)
-      else:
-        buf = self.statfs(path_or_fd)
-      assert buf
-      f_types = Fs_types().types
-      try:
-        return f_types[buf.f_type]
-      except KeyError:
-        return "UNKNOWN"
+        """
+        Get the filesystem type a file/path is on.
+        Args:
+            path_or_fd: A string path or an object which has a fileno function.
+        Returns:
+            A string name of the file system.
+        """
+        if hasattr(path_or_fd, 'fileno'):
+            buf = self.fstatfs(path_or_fd)
+        else:
+            buf = self.statfs(path_or_fd)
+
+        assert buf
+        f_types = Fs_types().types
+        try:
+            return f_types[buf.f_type]
+        except KeyError:
+            return "UNKNOWN"

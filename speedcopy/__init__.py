@@ -9,6 +9,12 @@ import stat
 import sys
 from .fstatfs import FilesystemInfo
 
+SPEEDCOPY_DEBUG = False
+
+def debug(msg):
+    if SPEEDCOPY_DEBUG:
+        print(msg)
+
 
 if not sys.platform.startswith("win32"):
     try:
@@ -99,8 +105,10 @@ if not sys.platform.startswith("win32"):
             if e.errno in _sendfile_err_codes:
                 # sendfile is not supported or does not support classic
                 # files (only sockets)
+                debug("!!! sendfile not supported: {}".format(e.errno))
                 pass
             else:
+                debug("!!! sendfile other error {}".format(e))
                 raise
         return status
 
@@ -116,20 +124,29 @@ if not sys.platform.startswith("win32"):
         for fn in [src, dst]:
             try:
                 st = os.stat(fn)
-            except OSError:
+            except OSError as e:
                 # File most likely does not exist
-                pass
+                debug(">>> {} doesn't exists [ {} ]".format(fn, e))
             else:
                 # XXX What about other special files? (sockets, devices...)
                 if stat.S_ISFIFO(st.st_mode):
                     raise shutil.SpecialFileError("`%s` is a named pipe" % fn)
 
         if not follow_symlinks and os.path.islink(src):
+            debug(">>> creating symlink ...")
             os.symlink(os.readlink(src), dst)
         else:
             fs_src_type = FilesystemInfo().filesystem(src.encode('utf-8'))
             fs_dst_type = FilesystemInfo().filesystem(os.path.dirname(dst.encode('utf-8')))
+            debug(">>> Source FS: {}".format(fs_src_type))
+            debug(">>> Destination FS: {}".format(fs_dst_type))
             if "CIFS" in fs_src_type and "CIFS" in fs_dst_type:
+
+                # CIFS_IOCTL_MAGIC = 0xCF
+                # CIFS_IOC_COPYCHUNK_FILE = IOW(CIFS_IOCTL_MAGIC, 3, c_int)
+                # fsrc = os.open(src, os.O_RDONLY)
+                # fdst = os.open(dst, os.O_WRONLY|os.O_CREAT)
+
 
                 CIFS_IOCTL_MAGIC = 0xCF
                 CIFS_IOC_COPYCHUNK_FILE = IOW(CIFS_IOCTL_MAGIC, 3, c_int)
