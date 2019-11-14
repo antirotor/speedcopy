@@ -1,0 +1,5 @@
+flake8:
+  enabled: true
+
+python:
+  enabled: true
