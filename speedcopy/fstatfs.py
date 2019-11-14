@@ -48,6 +48,7 @@ class Fs_types:
         "REISERFS_SUPER_MAGIC": 0x52654973,
         "ROMFS_MAGIC": 0x7275,
         "SMB_SUPER_MAGIC": 0x517B,
+        "SMB2_SUPER_MAGIC": 0xfe534d42,
         "SYSV2_SUPER_MAGIC": 0x012FF7B6,
         "SYSV4_SUPER_MAGIC": 0x012FF7B5,
         "TMPFS_MAGIC": 0x01021994,

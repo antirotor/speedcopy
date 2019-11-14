@@ -138,26 +138,30 @@ if not sys.platform.startswith("win32"):
         else:
             fs_src_type = FilesystemInfo().filesystem(src.encode('utf-8'))
             fs_dst_type = FilesystemInfo().filesystem(os.path.dirname(dst.encode('utf-8')))
+            supported_fs = ['CIFS', 'SMB2']
             debug(">>> Source FS: {}".format(fs_src_type))
             debug(">>> Destination FS: {}".format(fs_dst_type))
-            if "CIFS" in fs_src_type and "CIFS" in fs_dst_type:
-
-                # CIFS_IOCTL_MAGIC = 0xCF
-                # CIFS_IOC_COPYCHUNK_FILE = IOW(CIFS_IOCTL_MAGIC, 3, c_int)
-                # fsrc = os.open(src, os.O_RDONLY)
-                # fdst = os.open(dst, os.O_WRONLY|os.O_CREAT)
-
+            if fs_src_type in supported_fs and fs_dst_type in supported_fs:
+                fsrc = os.open(src, os.O_RDONLY)
+                fdst = os.open(dst, os.O_WRONLY|os.O_CREAT)
 
                 CIFS_IOCTL_MAGIC = 0xCF
                 CIFS_IOC_COPYCHUNK_FILE = IOW(CIFS_IOCTL_MAGIC, 3, c_int)
-                with open(src, 'rb') as fsrc, open(dst, 'wb') as fdst:
-                    # try copy file with COW support on Linux. If fail, fallback
-                    # to sendfile and if this is not available too, fallback
-                    # copyfileobj.
-                    ret = ioctl(fdst, CIFS_IOC_COPYCHUNK_FILE.value, fsrc)
-                    if ret != 0:
-                        # Try to use sendfile if available for performance
+
+                # try copy file with COW support on Linux. If fail, fallback
+                # to sendfile and if this is not available too, fallback
+                # copyfileobj.
+                ret = ioctl(fdst, CIFS_IOC_COPYCHUNK_FILE, fsrc)
+                os.close(fsrc)
+                os.close(fdst)
+                if ret != 0:
+                    debug("!!! failed {}".format(ret))
+                    os.close(fsrc)
+                    os.close(fdst)
+                    # Try to use sendfile if available for performance
+                    with open(src, 'rb') as fsrc, open(dst, 'wb') as fdst:
                         if not _copyfile_sendfile(fsrc, fdst):
+                            debug("!!! failed sendfile")
                             # sendfile is not available or failed, fallback
                             # to copyfileobj
                             shutil.copyfileobj(fsrc, fdst)
