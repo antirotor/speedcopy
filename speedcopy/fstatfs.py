@@ -34,10 +34,10 @@ class Fs_types:
         "ISOFS_SUPER_MAGIC": 0x9660,
         "JFFS2_SUPER_MAGIC": 0x72b6,
         "JFS_SUPER_MAGIC": 0x3153464a,
-        "MINIX_SUPER_MAGIC": 0x137F, # orig. minix
-        "MINIX_SUPER_MAGIC2": 0x138F, # 30 char minix
-        "MINIX2_SUPER_MAGIC": 0x2468, # minix V2
-        "MINIX2_SUPER_MAGIC2": 0x2478, # minix V2, 30 char names
+        "MINIX_SUPER_MAGIC": 0x137F,  # orig. minix
+        "MINIX_SUPER_MAGIC2": 0x138F,  # 30 char minix
+        "MINIX2_SUPER_MAGIC": 0x2468,  # minix V2
+        "MINIX2_SUPER_MAGIC2": 0x2478,  # minix V2, 30 char names
         "MSDOS_SUPER_MAGIC": 0x4d44,
         "NCP_SUPER_MAGIC": 0x564c,
         "NFS_SUPER_MAGIC": 0x6969,
@@ -72,32 +72,34 @@ class Fs_types:
 
 
 class statfs_t(ctypes.Structure):
-  """
-  Describes the details about a filesystem.
+    """
+    Describes the details about a filesystem.
 
-  f_type:    type of file system (see below)
-  f_bsize:   optimal transfer block size
-  f_blocks:  total data blocks in file system
-  f_bfree:   free blocks in fs
-  f_bavail:  free blocks avail to non-superuser
-  f_files:   total file nodes in file system
-  f_ffree:   free file nodes in fs
-  f_fsid:    file system id
-  f_namelen: maximum length of filenames
-  """
-  _fields_ = [
-      ("f_type",    ctypes.c_long),  # type of file system (see below)
-      ("f_bsize",   ctypes.c_long),  # optimal transfer block size
-      ("f_blocks",  ctypes.c_long),  # total data blocks in file system
-      ("f_bfree",   ctypes.c_long),  # free blocks in fs
-      ("f_bavail",  ctypes.c_long),  # free blocks avail to non-superuser
-      ("f_files",   ctypes.c_long),  # total file nodes in file system
-      ("f_ffree",   ctypes.c_long),  # free file nodes in fs
-      ("f_fsid",    ctypes.c_int*2), # file system id
-      ("f_namelen", ctypes.c_long),  # maximum length of filenames
-      # statfs_t has a bunch of extra padding, we hopefully guess large enough.
-      ("padding",   ctypes.c_char*1024),
-      ]
+    f_type:    type of file system (see below)
+    f_bsize:   optimal transfer block size
+    f_blocks:  total data blocks in file system
+    f_bfree:   free blocks in fs
+    f_bavail:  free blocks avail to non-superuser
+    f_files:   total file nodes in file system
+    f_ffree:   free file nodes in fs
+    f_fsid:    file system id
+    f_namelen: maximum length of filenames
+    """
+    _fields_ = [
+        ("f_type",    ctypes.c_long),   # type of file system (see below)
+        ("f_bsize",   ctypes.c_long),   # optimal transfer block size
+        ("f_blocks",  ctypes.c_long),   # total data blocks in file system
+        ("f_bfree",   ctypes.c_long),   # free blocks in fs
+        ("f_bavail",  ctypes.c_long),   # free blocks avail to non-superuser
+        ("f_files",   ctypes.c_long),   # total file nodes in file system
+        ("f_ffree",   ctypes.c_long),   # free file nodes in fs
+        ("f_fsid",    ctypes.c_int*2),  # file system id
+        ("f_namelen", ctypes.c_long),   # maximum length of filenames
+        # statfs_t has a bunch of extra padding,
+        # we hopefully guess large enough.
+        ("padding",   ctypes.c_char*1024),
+    ]
+
 
 class FilesystemInfo():
 
@@ -109,7 +111,6 @@ class FilesystemInfo():
         self._fstatfs = libc.fstatfs
         self._fstatfs.argtypes = [ctypes.c_int, ctypes.POINTER(statfs_t)]
         self._fstatfs.rettype = ctypes.c_int
-
 
     def statfs(self, path):
         """
