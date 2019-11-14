@@ -7,6 +7,7 @@ import os
 import shutil
 import stat
 import sys
+from .fstatfs import FilesystemInfo
 
 
 if not sys.platform.startswith("win32"):
@@ -17,7 +18,11 @@ if not sys.platform.startswith("win32"):
         _sendfile = sendfile.sendfile
     from fcntl import ioctl
     import ctypes
+    import ctypes.util
     from ctypes import c_int
+
+    CIFS_MAGIC_NUMBER = 0xFF534D42
+    SMB2_MAGIC_NUMBER = 0xFE534D42
 
     _IOC_NRBITS = 8
     _IOC_TYPEBITS = 8
@@ -122,19 +127,30 @@ if not sys.platform.startswith("win32"):
         if not follow_symlinks and os.path.islink(src):
             os.symlink(os.readlink(src), dst)
         else:
-            CIFS_IOCTL_MAGIC = 0xCF
-            CIFS_IOC_COPYCHUNK_FILE = IOW(CIFS_IOCTL_MAGIC, 3, c_int)
-            with open(src, 'rb') as fsrc, open(dst, 'wb') as fdst:
-                # try copy file with COW support on Linux. If fail, fallback
-                # to sendfile and if this is not available too, fallback
-                # copyfileobj.
-                ret = ioctl(fdst, CIFS_IOC_COPYCHUNK_FILE.value, fsrc)
-                if ret != 0:
-                    # Try to use sendfile if available for performance
+            fs_src_type = FilesystemInfo().filesystem(src.encode('utf-8'))
+            fs_dst_type = FilesystemInfo().filesystem(os.path.dirname(dst.encode('utf-8')))
+            if "CIFS" in fs_src_type and "CIFS" in fs_dst_type:
+
+                CIFS_IOCTL_MAGIC = 0xCF
+                CIFS_IOC_COPYCHUNK_FILE = IOW(CIFS_IOCTL_MAGIC, 3, c_int)
+                with open(src, 'rb') as fsrc, open(dst, 'wb') as fdst:
+                    # try copy file with COW support on Linux. If fail, fallback
+                    # to sendfile and if this is not available too, fallback
+                    # copyfileobj.
+                    ret = ioctl(fdst, CIFS_IOC_COPYCHUNK_FILE.value, fsrc)
+                    if ret != 0:
+                        # Try to use sendfile if available for performance
+                        if not _copyfile_sendfile(fsrc, fdst):
+                            # sendfile is not available or failed, fallback
+                            # to copyfileobj
+                            shutil.copyfileobj(fsrc, fdst)
+            else:
+                with open(src, 'rb') as fsrc, open(dst, 'wb') as fdst:
                     if not _copyfile_sendfile(fsrc, fdst):
                         # sendfile is not available or failed, fallback
                         # to copyfileobj
-                        shutil.copyfileobj(fsrc, fdst)
+                        shutil.copyfileobj(src, dst)
+
         return dst
 
 else:
