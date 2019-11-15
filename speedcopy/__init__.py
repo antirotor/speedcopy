@@ -188,7 +188,7 @@ else:
         It uses windows native CopyFileW method to do so, making advantage of
         server-side copy where available.
         """
-        from ctypes import wintypes
+        # from ctypes import wintypes
 
         if shutil._samefile(src, dst):
             # Get shutil.SameFileError if available (Python 3.4+)
@@ -211,16 +211,28 @@ else:
         if not follow_symlinks and os.path.islink(src):
             os.symlink(os.readlink(src), dst)
         else:
-            kernel32 = ctypes.windll.kernel32
-            kernel32.CopyFileW.restype = wintypes.BOOL
+            kernel32 = ctypes.WinDLL('kernel32',
+                                     use_last_error=True, use_errno=True)
+            copyfile = kernel32.CopyFileW
+            copyfile.argtypes = (ctypes.c_wchar_p,
+                                 ctypes.c_wchar_p,
+                                 ctypes.wintypes.BOOL)
+            copyfile.restype = ctypes.wintypes.BOOL
 
-            ret = kernel32.CopyFileW(ctypes.c_wchar_p(src),
-                                     ctypes.c_wchar_p(dst),
-                                     wintypes.BOOL(True))
+            source_file = os.path.normpath(src)
+            dest_file = os.path.normpath(dst)
+            if source_file.startswith('\\\\'):
+                source_file = 'UNC\\' + source_file[2:]
+            if dest_file.startswith('\\\\'):
+                dest_file = 'UNC\\' + dest_file[2:]
+
+            ret = copyfile('\\\\?\\' + source_file,
+                           '\\\\?\\' + dest_file, True)
 
             if ret != 0:
+                error = ctypes.get_last_error()
                 raise IOError(
-                    "File {!r} copy failed, error: {}".format(src, ret))
+                    "File {!r} copy failed, error: {}".format(src, error))
         return dst
 
 
