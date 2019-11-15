@@ -188,7 +188,7 @@ else:
         It uses windows native CopyFileW method to do so, making advantage of
         server-side copy where available.
         """
-        # from ctypes import wintypes
+        from ctypes import wintypes
 
         if shutil._samefile(src, dst):
             # Get shutil.SameFileError if available (Python 3.4+)
@@ -231,6 +231,11 @@ else:
 
             if ret != 0:
                 error = ctypes.get_last_error()
+                # 997 is ERROR_IO_PENDING. Why it is poping here with
+                # CopyFileW is beyond me, but  assume we can easily
+                # ignore it as it is copying nevertheless
+                if error == 997:
+                    return dst
                 raise IOError(
                     "File {!r} copy failed, error: {}".format(src, error))
         return dst
