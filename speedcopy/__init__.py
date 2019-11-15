@@ -7,7 +7,6 @@ import os
 import shutil
 import stat
 import sys
-from .fstatfs import FilesystemInfo
 
 SPEEDCOPY_DEBUG = False
 
@@ -27,6 +26,7 @@ if not sys.platform.startswith("win32"):
     import ctypes
     import ctypes.util
     from ctypes import c_int
+    from .fstatfs import FilesystemInfo
 
     CIFS_MAGIC_NUMBER = 0xFF534D42
     SMB2_MAGIC_NUMBER = 0xFE534D42
