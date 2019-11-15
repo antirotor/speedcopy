@@ -7,6 +7,7 @@ import os
 import shutil
 import stat
 import sys
+import ctypes
 
 SPEEDCOPY_DEBUG = False
 
@@ -20,10 +21,13 @@ if not sys.platform.startswith("win32"):
     try:
         _sendfile = os.sendfile
     except AttributeError:
-        import sendfile
-        _sendfile = sendfile.sendfile
+        try:
+            import sendfile
+        except ImportError:
+            _sendfile = None
+        else:
+            _sendfile = sendfile.sendfile
     from fcntl import ioctl
-    import ctypes
     import ctypes.util
     from ctypes import c_int
     from .fstatfs import FilesystemInfo
@@ -90,6 +94,8 @@ if not sys.platform.startswith("win32"):
         """
         Copy data from fsrc to fdst using sendfile, return True if success.
         """
+        if not _sendfile:
+            return False
         status = False
         max_bcount = 2 ** 31 - 1
         bcount = max_bcount
@@ -183,11 +189,6 @@ else:
         server-side copy where available.
         """
         from ctypes import wintypes
-
-        # kernel32 = windll.kernel32
-        # copy_file_w = kernel32.CopyFileW
-        # copy_file_w.argtypes = (c_wchar_p, c_wchar_p, c_int)
-        # copy_file_w.restype = c_int
 
         if shutil._samefile(src, dst):
             # Get shutil.SameFileError if available (Python 3.4+)
