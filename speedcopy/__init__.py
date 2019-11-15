@@ -182,12 +182,12 @@ else:
         It uses windows native CopyFileW method to do so, making advantage of
         server-side copy where available.
         """
-        from ctypes import windll, c_wchar_p, c_int
+        from ctypes import wintypes
 
-        kernel32 = windll.kernel32
-        copy_file_w = kernel32.CopyFileW
-        copy_file_w.argtypes = (c_wchar_p, c_wchar_p, c_int)
-        copy_file_w.restype = c_int
+        # kernel32 = windll.kernel32
+        # copy_file_w = kernel32.CopyFileW
+        # copy_file_w.argtypes = (c_wchar_p, c_wchar_p, c_int)
+        # copy_file_w.restype = c_int
 
         if shutil._samefile(src, dst):
             # Get shutil.SameFileError if available (Python 3.4+)
@@ -210,7 +210,12 @@ else:
         if not follow_symlinks and os.path.islink(src):
             os.symlink(os.readlink(src), dst)
         else:
-            ret = copy_file_w(src, dst, False)
+            kernel32 = ctypes.windll.kernel32
+            kernel32.CopyFileW.restype = wintypes.BOOL
+
+            ret = kernel32.CopyFileW(ctypes.c_wchar_p(src),
+                                     ctypes.c_wchar_p(dst),
+                                     wintypes.BOOL(True))
 
             if ret != 0:
                 raise IOError(
