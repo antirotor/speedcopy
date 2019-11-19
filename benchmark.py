@@ -45,9 +45,15 @@ if __name__ == "__main__":
                         repeat=5
                         )
                     v = min(v)
-                    dp = str(v / (10 if file_size_mb >= 64 else 100))
-                    print("  - Speed: {}".format(dp))
-                    datapoint.append(dp)
+                    dp = v / (10 if file_size_mb >= 64 else 100)
+                    if not use_fast_copy:
+                        raw_dp = dp
+                        print("  - Speed: {}".format(dp))
+                    else:
+                        speed_up = raw_dp / dp
+                        print("  - Speed: {}".format(dp))
+                        print("  - Speedup: {}x".format(round(speed_up, 2)))
+                    datapoint.append(str(dp))
                     try:
                         os.remove(dst)
                     except FileNotFoundError:

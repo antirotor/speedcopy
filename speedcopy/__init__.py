@@ -213,11 +213,11 @@ else:
         else:
             kernel32 = ctypes.WinDLL('kernel32',
                                      use_last_error=True, use_errno=True)
-            copyfile = kernel32.CopyFileW
+            copyfile = kernel32.CopyFile2
             copyfile.argtypes = (ctypes.c_wchar_p,
                                  ctypes.c_wchar_p,
-                                 ctypes.wintypes.BOOL)
-            copyfile.restype = ctypes.wintypes.BOOL
+                                 ctypes.c_void_p)
+            copyfile.restype = ctypes.HRESULT
 
             source_file = os.path.normpath(src)
             dest_file = os.path.normpath(dst)
@@ -227,10 +227,12 @@ else:
                 dest_file = 'UNC\\' + dest_file[2:]
 
             ret = copyfile('\\\\?\\' + source_file,
-                           '\\\\?\\' + dest_file, True)
+                           '\\\\?\\' + dest_file, None)
 
             if ret != 0:
                 error = ctypes.get_last_error()
+                if error == 0:
+                    return dst
                 # 997 is ERROR_IO_PENDING. Why it is poping here with
                 # CopyFileW is beyond me, but  assume we can easily
                 # ignore it as it is copying nevertheless
