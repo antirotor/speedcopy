@@ -4,7 +4,7 @@ speedcopy
 [![Build Status](https://travis-ci.com/antirotor/speedcopy.svg?branch=master)](https://travis-ci.com/antirotor/speedcopy)
 [![PyPI version](https://badge.fury.io/py/speedcopy.svg)](https://badge.fury.io/py/speedcopy)
 
-Patched python shutil.copyfile using native call CopyFileW on windows to accelerate
+Patched python shutil.copyfile using native call `CopyFile2` on windows to accelerate
 transfer on windows shares. On Linux, it issues special ioctl command `CIFS_IOC_COPYCHUNK_FILE` to enable server-side copy.
 
 This works only when both source and destination files are on same SMB1(CIFS)/2/3 filesystem.
@@ -54,3 +54,5 @@ Todo
 
 - Better error handling
 - Other platforms support
+- Conform behaviour to original `shutil.copyfile()`
+- Review benchmark code
