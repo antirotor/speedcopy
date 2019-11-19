@@ -10,6 +10,14 @@ This works only when both source and destination files are on same SMB1(CIFS)/2/
 
 See https://wiki.samba.org/index.php/Server-Side_Copy
 
+## Installation
+
+Add speedcopy to `PYTHONPATH` or:
+
+```
+pip install speedcopy
+```
+
 ## Usage
 
 If you want to monkeypatch `shutil.copyfile()` then:
@@ -23,7 +31,7 @@ speedcopy.patch_copyfile()
 # your code ...
 shutil.copyfile(src, dst)
 ```
-This will make last call to use copyfile.
+This will make last call to use speedcopy.
 
 Direct use:
 ```python
@@ -33,6 +41,8 @@ import speedcopy
 
 speedcopy.copyfile(src, dst)
 ```
+
+There is also debug mode enabled by setting `speedcopy.SPEEDCOPY_DEBUG = True`. This will print more information during runtime.
 
 ## Benchmark
 
