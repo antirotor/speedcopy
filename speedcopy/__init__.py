@@ -188,7 +188,6 @@ else:
         It uses windows native CopyFileW method to do so, making advantage of
         server-side copy where available.
         """
-        from ctypes import wintypes
 
         if shutil._samefile(src, dst):
             # Get shutil.SameFileError if available (Python 3.4+)
