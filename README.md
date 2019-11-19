@@ -1,5 +1,4 @@
-speedcopy
-=========
+# speedcopy
 
 [![Build Status](https://travis-ci.com/antirotor/speedcopy.svg?branch=master)](https://travis-ci.com/antirotor/speedcopy)
 [![PyPI version](https://badge.fury.io/py/speedcopy.svg)](https://badge.fury.io/py/speedcopy)
@@ -11,8 +10,33 @@ This works only when both source and destination files are on same SMB1(CIFS)/2/
 
 See https://wiki.samba.org/index.php/Server-Side_Copy
 
-Windows
--------
+## Usage
+
+If you want to monkeypatch `shutil.copyfile()` then:
+
+```python
+import shutil
+import speedcopy
+
+speedcopy.patch_copyfile()
+
+# your code ...
+shutil.copyfile(src, dst)
+```
+This will make last call to use copyfile.
+
+Direct use:
+```python
+import speedcopy
+
+# some code ...
+
+speedcopy.copyfile(src, dst)
+```
+
+## Benchmark
+
+### Windows
 
 | Filesize | Python | Speedcopy | Factor |
 | --- | --- | --- | --- |
@@ -28,8 +52,7 @@ Windows
 | 512 | 35.9462 | 3.9966 | 8.99 |
 | 1024 | 65.6285 | 28.0291 | 2.34 |
 
-Linux
------
+### Linux
 
 | Filesize | Python | Speedcopy | Factor |
 | --- | --- | --- | --- |
@@ -49,8 +72,7 @@ Linux
 
 You can test it yourself with included `benchmark.py` (and this will take some time as values are measured multiple times and then averaged).
 
-Todo
-----
+## Todo
 
 - Better error handling
 - Other platforms support
