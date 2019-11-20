@@ -1,71 +1,90 @@
-speedcopy
-=========
+# speedcopy
 
 [![Build Status](https://travis-ci.com/antirotor/speedcopy.svg?branch=master)](https://travis-ci.com/antirotor/speedcopy)
 [![PyPI version](https://badge.fury.io/py/speedcopy.svg)](https://badge.fury.io/py/speedcopy)
 
-Patched python shutil.copyfile using xcopy on windows to accelerate transfer on windows shares.
+Patched python shutil.copyfile using native call `CopyFile2` on windows to accelerate
+transfer on windows shares. On Linux, it issues special ioctl command `CIFS_IOC_COPYCHUNK_FILE` to enable server-side copy.
 
-Using ``xcopy`` on windows to server-side copy on network shares where enabled.
+This works only when both source and destination files are on same SMB1(CIFS)/2/3 filesystem.
 
 See https://wiki.samba.org/index.php/Server-Side_Copy
 
-It is based on `pyfastcopy` so it should accelerate copying on linux too.
+## Installation
 
-Those are benchmark values based on my local setup:
+Add speedcopy to `PYTHONPATH` or:
 
-Windows copy / local storage
-----------------------------
+```
+pip install speedcopy
+```
 
-| filesize (mb) | python | copy  |
-|--------------:|-------:|------:|
-| 1             | 0.003  | 0.067 |
-| 2             | 0.005  | 0.067 |
-| 4             | 0.010  | 0.068 |
-| 8             | 0.020  | 0.073 |
-| 16            | 0.042  | 0.079 |
-| 32            | 0.088  | 0.092 |
-| 64            | 1.925  | 1.200 |
-| 128           | 0.366  | 0.169 |
-| 256           | 0.754  | 0.277 |
-| 512           | 1.622  | 0.505 |
-| 1024          | 3.567  | 0.910 |
-| 2048          | 7.242  | 2.607 |
+## Usage
 
-Windows xcopy / local storage
------------------------------
+If you want to monkeypatch `shutil.copyfile()` then:
 
-| filesize (mb) | python | xcopy |
-|--------------:|-------:|------:|
-| 1             | 0.003  | 0.135 |
-| 2             | 0.005  | 0.134 |
-| 4             | 0.010  | 0.136 |
-| 8             | 0.019  | 0.140 |
-| 6             | 0.039  | 0.144 |
-| 32            | 0.087  | 0.158 |
-| 64            | 1.884  | 1.858 |
-| 128           | 0.360  | 0.240 |
-| 256           | 0.774  | 0.335 |
-| 512           | 1.612  | 0.561 |
-| 1024          | 3.575  | 1.199 |
-| 2048          | 6.864  | 2.599 |
+```python
+import shutil
+import speedcopy
 
-Windows xcopy / samba share
----------------------------
+speedcopy.patch_copyfile()
 
-| filesize (mb) | python | xcopy  |
-|--------------:|-------:|-------:|
-| 1             | 0.070  | 0.153  |
-| 2             | 0.144  | 0.157  |
-| 4             | 0.298  | 0.163  |
-| 8             | 0.623  | 0.167  |
-| 16            | 1.181  | 0.176  |
-| 32            | 2.385  | 0.195  |
-| 64            | 49.040 | 2.437  |
-| 128           | 8.846  | 0.306  |
-| 256           | 17.135 | 2.954  |
-| 512           | 30.407 | 4.422  |
-| 1024          | 55.591 | 30.331 |
-| 2048          | 105.003| 204.680|
+# your code ...
+shutil.copyfile(src, dst)
+```
+This will make last call to use speedcopy.
 
-There are some spikes I attribute to working load on system I was running benchmark on. You can test it yourself with included `benchmark.py`
+Direct use:
+```python
+import speedcopy
+
+# some code ...
+
+speedcopy.copyfile(src, dst)
+```
+
+There is also debug mode enabled by setting `speedcopy.SPEEDCOPY_DEBUG = True`. This will print more information during runtime.
+
+## Benchmark
+
+### Windows
+
+| Filesize | Python | Speedcopy | Factor |
+| --- | --- | --- | --- |
+| 1 | 0.0797 | 0.0222 | 3.59 |
+| 2 | 0.1702 | 0.0254 | 6.69 |
+| 4 | 0.3257 | 0.0271 | 12.01 |
+| 8 | 0.6729 | 0.0337 | 19.94 |
+| 16 | 1.335 | 0.0384 | 34.72 |
+| 32 | 2.3612 | 0.0625 | 37.72 |
+| 64 | 57.4549 | 0.9758 | 58.88 |
+| 128 | 10.9294 | 0.1669 | 65.47 |
+| 256 | 20.3843 | 2.276 | 8.96 |
+| 512 | 35.9462 | 3.9966 | 8.99 |
+| 1024 | 65.6285 | 28.0291 | 2.34 |
+
+### Linux
+
+| Filesize | Python | Speedcopy | Factor |
+| --- | --- | --- | --- |
+| 1 | 0.0682 | 0.0099 | 6.88 |
+| 2 | 0.0894 | 0.0105 | 8.51 |
+| 4 | 0.1337 | 0.012 | 11.14 |
+| 8 | 0.1922 | 0.0145 | 13.25 |
+| 16 | 0.2853 | 0.0193 | 14.78 |
+| 32 | 0.4724 | 0.0288 | 16.4 |
+| 64 | 8.0071 | 0.4724 | 16.94 |
+| 128 | 1.3338 | 0.2311 | 5.77 |
+| 256 | 2.6599 | 0.4788 | 5.55 |
+| 512 | 5.3798 | 0.9796 | 5.49 |
+| 1024 | 10.3328 | 2.9180 | 3.54 |
+
+*Note that Windows and Linux timing do not correlate, they are taken from different systems. Notice the spike on 64 Mb size file on both of them. Also note that these figures are not taken from production grade hardware and setup and can be completely off at other places.*
+
+You can test it yourself with included `benchmark.py` (and this will take some time as values are measured multiple times and then averaged).
+
+## Todo
+
+- Better error handling
+- Other platforms support
+- Conform behaviour to original `shutil.copyfile()`
+- Review benchmark code

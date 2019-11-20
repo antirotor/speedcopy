@@ -2,6 +2,8 @@ import shutil
 import speedcopy
 import os
 
+speedcopy.SPEEDCOPY_DEBUG = True
+
 
 def setup_function(function):
     speedcopy.patch_copyfile()
