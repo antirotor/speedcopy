@@ -218,8 +218,8 @@ else:
                                  ctypes.c_void_p)
             copyfile.restype = ctypes.HRESULT
 
-            source_file = os.path.normpath(src)
-            dest_file = os.path.normpath(dst)
+            source_file = os.path.abspath(os.path.normpath(src))
+            dest_file = os.path.abspath(os.path.normpath(dst))
             if source_file.startswith('\\\\'):
                 source_file = 'UNC\\' + source_file[2:]
             if dest_file.startswith('\\\\'):
