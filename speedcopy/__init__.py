@@ -144,8 +144,8 @@ if not sys.platform.startswith("win32"):
             os.symlink(os.readlink(src), dst)
         else:
             fs_src_type = FilesystemInfo().filesystem(src.encode('utf-8'))
-            fs_dst_type = FilesystemInfo().filesystem(
-                os.path.dirname(dst.encode('utf-8')))
+            dst_dir_path = os.path.normpath(os.path.dirname(dst.encode('utf-8')))
+            fs_dst_type = FilesystemInfo().filesystem(dst_dir_path)
             supported_fs = ['CIFS', 'SMB2']
             debug(">>> Source FS: {}".format(fs_src_type))
             debug(">>> Destination FS: {}".format(fs_dst_type))
