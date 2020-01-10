@@ -28,7 +28,7 @@ def test_copy_abs(tmpdir):
 
 def test_copy_rel(tmpdir):
     cwd = os.getcwd()
-    os.chdir(tmpdir)
+    os.chdir(str(tmpdir))
 
     try:
         src = "source"
