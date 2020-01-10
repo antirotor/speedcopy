@@ -3,6 +3,7 @@ import speedcopy
 import os
 
 speedcopy.SPEEDCOPY_DEBUG = True
+_FILE_SIZE = 5 * 1024 * 1024
 
 
 def setup_function(function):
@@ -13,16 +14,34 @@ def teadown_function(function):
     speedcopy.unpatch_copyfile()
 
 
-def test_copy(tmpdir):
+def test_copy_abs(tmpdir):
     src = tmpdir.join("source")
     dst = tmpdir.join("destination")
     with open(str(src), "wb") as f:
-        f.write(os.urandom(5 * 1024 * 1024))
+        f.write(os.urandom(_FILE_SIZE))
     f.close()
 
     shutil.copyfile(str(src), str(dst))
 
     assert os.path.isfile(str(dst))
+
+
+def test_copy_rel(tmpdir):
+    cwd = os.getcwd()
+    os.chdir(str(tmpdir))
+
+    try:
+        src = "source"
+        dst = "destination"
+        with open(str(src), "wb") as f:
+            f.write(os.urandom(_FILE_SIZE))
+        f.close()
+
+        shutil.copyfile(str(src), str(dst))
+
+        assert os.path.isfile(str(dst))
+    finally:
+        os.chdir(cwd)
 
 
 def test_patch():
