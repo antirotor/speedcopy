@@ -4,7 +4,6 @@ import timeit
 import os
 import collections
 from pprint import pprint
-import time
 
 FILE_SIZES_MB = tuple(2 ** x for x in range(12))
 
@@ -21,7 +20,7 @@ def generate_file(parent_dir, size_b):
 if __name__ == "__main__":
     try:
         dir = sys.argv[1]
-    except:
+    except KeyError:
         print("pass destination directory as an argument if you want")
         dir = None
 
@@ -35,10 +34,12 @@ if __name__ == "__main__":
                 src = generate_file(tmp_dir, file_size_mb)
                 dst = "%s.dst" % (src)
                 for use_fast_copy in (False, True):
-                    print(">>> with%s speedcopy ..." % ("" if use_fast_copy else "out"))
+                    print(">>> with%s speedcopy ..." % ("" if use_fast_copy else "out"))  # noqa: E501
                     v = timeit.repeat(
-                        setup=("import shutil; import speedcopy; speedcopy.patch_copyfile(); "
-                               "p1 = {}; p2 = {}").format(repr(src), repr(dst)),
+                        setup=("import shutil; import speedcopy; "
+                               "speedcopy.patch_copyfile(); "
+                               "p1 = {}; p2 = {}").format(repr(src),
+                                                          repr(dst)),
                         stmt="shutil.{}(p1, p2)".format(
                             "copyfile" if use_fast_copy else "_orig_copyfile"),
                         number=10 if file_size_mb > 64 else 100,
