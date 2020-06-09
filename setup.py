@@ -1,4 +1,6 @@
-from setuptools import setup, find_packages
+# -*- coding: utf-8 -*-
+"""Metadata file."""
+from setuptools import setup
 import os
 import imp
 from io import open
@@ -22,20 +24,23 @@ classifiers = [
     "Programming Language :: Python :: 3.5",
     "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
     "Topic :: Software Development :: Libraries :: Python Modules",
-	"Topic :: System :: Filesystems"
+    "Topic :: System :: Filesystems"
 
 ]
 
 setup(name='speedcopy',
       version=version,
-      description=('Windows xcopy patch for shutil.copyfile'
-                   ', based on pyfastcopy'),
+      description=('Replacement or alternative for python copyfile()'
+                   'utilizing server side copy on network shares for faster'
+                   'copying.'),
       author='Ondrej Samohel',
       author_email='annatar@annatar.net',
       url='https://github.com/antirotor/speedcopy',
       long_description=long_description,
       long_description_content_type='text/markdown',
-	  packages=['speedcopy'],
-	  classifiers=classifiers
+      packages=['speedcopy'],
+      classifiers=classifiers,
+      tests_require=['pytest'],
       )
