@@ -58,7 +58,7 @@ def test_errors(tmpdir):
     src = tmpdir.join("source")
     dst = tmpdir.join("destination")
 
-    with pytest.raises(IOError):
+    with pytest.raises((IOError, OSError)):
         shutil.copyfile(str(src), str(dst))
 
 
