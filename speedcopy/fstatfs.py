@@ -1,6 +1,9 @@
-"""
-python fstatfs implementation taken from:
+# -*- coding: utf-8 -*-
+"""Python fstatfs implementation.
+
+Taken from:
 https://github.com/mithro/rcfiles
+
 """
 import os
 import ctypes
@@ -11,8 +14,12 @@ libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
 
 
 class Fs_types:
-    # Constants for filesystem magic
-    # https://www.gnu.org/software/coreutils/filesystems.html
+    """Constants for filesystem magic.
+
+    See:
+        https://www.gnu.org/software/coreutils/filesystems.html
+    """
+
     filesystems = {
         "ADFS_SUPER_MAGIC": 0xadf5,
         "AFFS_SUPER_MAGIC": 0xADFF,
@@ -64,6 +71,7 @@ class Fs_types:
     types = {}
 
     def __init__(self):
+        """Remove ``MAGIC`` and ``SUPER`` postfixes."""
         for name, value in self.filesystems.items():
             if name.endswith('MAGIC'):
                 hname = name[:-6]
@@ -72,19 +80,20 @@ class Fs_types:
 
 
 class statfs_t(ctypes.Structure):
-    """
-    Describes the details about a filesystem.
+    """Describes the details about a filesystem.
 
-    f_type:    type of file system (see below)
-    f_bsize:   optimal transfer block size
-    f_blocks:  total data blocks in file system
-    f_bfree:   free blocks in fs
-    f_bavail:  free blocks avail to non-superuser
-    f_files:   total file nodes in file system
-    f_ffree:   free file nodes in fs
-    f_fsid:    file system id
-    f_namelen: maximum length of filenames
+    Attributes:
+        f_type:    type of file system (see below)
+        f_bsize:   optimal transfer block size
+        f_blocks:  total data blocks in file system
+        f_bfree:   free blocks in fs
+        f_bavail:  free blocks avail to non-superuser
+        f_files:   total file nodes in file system
+        f_ffree:   free file nodes in fs
+        f_fsid:    file system id
+        f_namelen: maximum length of filenames
     """
+
     _fields_ = [
         ("f_type",    ctypes.c_long),   # type of file system (see below)
         ("f_bsize",   ctypes.c_long),   # optimal transfer block size
@@ -102,8 +111,10 @@ class statfs_t(ctypes.Structure):
 
 
 class FilesystemInfo():
+    """Get filesystem info."""
 
     def __init__(self):
+        """Prepare system calls."""
         self._statfs = libc.statfs
         self._statfs.argtypes = [ctypes.c_char_p, ctypes.POINTER(statfs_t)]
         self._statfs.rettype = ctypes.c_int
@@ -113,12 +124,15 @@ class FilesystemInfo():
         self._fstatfs.rettype = ctypes.c_int
 
     def statfs(self, path):
-        """
-        The function statfs() returns information about a mounted file system.
+        """Get information about mounted file system by path.
+
         Args:
-            path: is the pathname of any file within the mounted file system.
+            path (str): is the pathname of any file within
+                        the mounted file system.
+
         Returns:
             Returns a statfs_t object.
+
         """
         buf = statfs_t()
         err = self._statfs(path, ctypes.byref(buf))
@@ -128,12 +142,13 @@ class FilesystemInfo():
         return buf
 
     def fstatfs(self, fd):
-        """
-        The fuction fstatfs() returns information about a mounted file ssytem.
+        """Get information about mounted file system by file descriptor.
+
         Args:
             fd: A file descriptor.
         Returns:
             Returns a statfs_t object.
+
         """
         buf = statfs_t()
         fileno = fd.fileno()
@@ -145,10 +160,11 @@ class FilesystemInfo():
         return buf
 
     def filesystem(self, path_or_fd):
-        """
-        Get the filesystem type a file/path is on.
+        """Get the filesystem type a file/path is on.
+
         Args:
-            path_or_fd: A string path or an object which has a fileno function.
+            path_or_fd (str or IOBase): A string path or an object which has
+                                        a :meth:`IOBase.fileno()` function.
         Returns:
             A string name of the file system.
         """

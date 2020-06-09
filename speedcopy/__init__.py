@@ -1,6 +1,17 @@
-"""
-Speed up shutil.copyfile by using sendfile system call and robocopy for
-windows. Based on `pyfastcopy`, extending it to windows.
+# -*- coding: utf-8 -*-
+"""Speedcopy copyfile replacement.
+
+Speedcopy speeds up copying files over network by utilizing system specific
+calls taking advantage of server side copy. This speed increase is visible
+when copying file on same share and only if share server supports server
+side copy (samba 4.1.0).
+
+See:
+    https://wiki.samba.org/index.php/Server-Side_Copy
+
+Attributes:
+    SPEEDCOPY_DEBUG (bool): set to print debug messages.
+
 """
 import errno
 import os
@@ -13,6 +24,7 @@ SPEEDCOPY_DEBUG = False
 
 
 def debug(msg):
+    """Print debug message to console."""
     if SPEEDCOPY_DEBUG:
         print(msg)
 
@@ -55,21 +67,25 @@ if not sys.platform.startswith("win32"):
     IOC_READ = 2
 
     def IOC_TYPECHECK(t):
-        """
+        """Return the size of given ioctl type.
+
         Returns the size of given type, and check its suitability for use in an
         ioctl command number.
+
         """
         result = ctypes.sizeof(t)
         assert result <= _IOC_SIZEMASK, result
         return result
 
     def IOC(dir, type, nr, size):
-        """
-        dir
-            One of IOC_NONE, IOC_WRITE, IOC_READ, or IOC_READ|IOC_WRITE.
-            Direction is from the application's point of view, not kernel's.
-        size (14-bits unsigned integer)
-            Size of the buffer passed to ioctl's "arg" argument.
+        """Prepare command for ioctl.
+
+        Args:
+            dir (int): One of ``IOC_NONE``, ``IOC_WRITE``, ``IOC_READ``
+                       or ``IOC_READ|IOC_WRITE``. Direction is from the
+                       application's point of view, not kernel's.
+            size (int): (14-bits unsigned integer) Size of the buffer passed
+                        to ioctl's "arg" argument.
         """
         assert dir <= _IOC_DIRMASK, dir
         assert type <= _IOC_TYPEMASK, type
@@ -78,10 +94,11 @@ if not sys.platform.startswith("win32"):
         return (dir << _IOC_DIRSHIFT) | (type << _IOC_TYPESHIFT) | (nr << _IOC_NRSHIFT) | (size << _IOC_SIZESHIFT)  # noqa: E501
 
     def IOW(type, nr, size):
-        """
-        An ioctl with write parameters.
-        size (ctype type or instance)
-            Type/structure of the argument passed to ioctl's "arg" argument.
+        """Ioctl with write parameters.
+
+        Args:
+            size (ctype type or instance): Type/structure of the argument
+                                           passed to ioctl's "arg" argument.
         """
         return IOC(IOC_WRITE, type, nr, IOC_TYPECHECK(size))
 
@@ -91,8 +108,15 @@ if not sys.platform.startswith("win32"):
                                        "EBADF", "ENOTSOCK", "EOPNOTSUPP")}
 
     def _copyfile_sendfile(fsrc, fdst):
-        """
-        Copy data from fsrc to fdst using sendfile, return True if success.
+        """Copy data from fsrc to fdst using sendfile.
+
+        Args:
+            fsrc (str): Source file.
+            fdst (str): Destination file.
+
+        Returns:
+            bool: True on success.
+
         """
         if not _sendfile:
             return False
@@ -121,8 +145,21 @@ if not sys.platform.startswith("win32"):
 
     def copyfile(src, dst, follow_symlinks=True):
         """Copy data from src to dst.
-        If follow_symlinks is not set and src is a symbolic link, a new
-        symlink will be created instead of copying the file it points to.
+
+        Args:
+            src (str): Source file.
+            dst (str): Destination file.
+            follow_symlinks (bool): If ``follow_symlinks`` is not set and
+                ``src`` is a symbolic link, a new symlink will be created
+                instead of copying the file it points to.
+
+        Returns:
+            str: Destination on success
+
+        Raises:
+            shutil.SpecialFileError: when source/destination is invalid.
+            shutil.SameFileError: if ``src`` and ``dst`` are same.
+
         """
         if shutil._samefile(src, dst):
             raise shutil.SameFileError(
@@ -185,10 +222,28 @@ if not sys.platform.startswith("win32"):
 else:
     def copyfile(src, dst, follow_symlinks=True):
         """Copy data from src to dst.
-        It uses windows native CopyFileW method to do so, making advantage of
-        server-side copy where available.
-        """
 
+        It uses windows native ``CopyFile2`` method to do so, making advantage
+        of server-side copy where available. If this method is not available
+        it will fallback to ``CopyFileW`` (on Windows 7 and older).
+
+        Args:
+            src (str): Source file.
+            dst (str): Destination file.
+            follow_symlinks (bool): If ``follow_symlinks`` is not set and
+                ``src`` is a symbolic link, a new symlink will be created
+                instead of copying the file it points to.
+
+        Returns:
+            str: Destination on success
+
+        Raises:
+            shutil.SpecialFileError: when source/destination is invalid.
+            shutil.SameFileError: if ``src`` and ``dst`` are same.
+            OSError: if file no exist
+            IOError: if copying failed on windows API level.
+
+        """
         if shutil._samefile(src, dst):
             # Get shutil.SameFileError if available (Python 3.4+)
             # else fall back to original behavior using shutil.Error
@@ -212,7 +267,12 @@ else:
         else:
             kernel32 = ctypes.WinDLL('kernel32',
                                      use_last_error=True, use_errno=True)
-            copyfile = kernel32.CopyFile2
+            try:
+                copyfile = kernel32.CopyFile2
+            except AttributeError:
+                # on windows 7 and older
+                copyfile = kernel32.CopyFileW
+
             copyfile.argtypes = (ctypes.c_wchar_p,
                                  ctypes.c_wchar_p,
                                  ctypes.c_void_p)
@@ -228,7 +288,7 @@ else:
             ret = copyfile('\\\\?\\' + source_file,
                            '\\\\?\\' + dest_file, None)
 
-            if ret != 0:
+            if ret == 0:
                 error = ctypes.get_last_error()
                 if error == 0:
                     return dst
@@ -238,21 +298,18 @@ else:
                 if error == 997:
                     return dst
                 raise IOError(
-                    "File {!r} copy failed, error: {}".format(src, error))
+                    "File {!r} copy failed, error: {}".format(
+                        src, ctypes.FormatError(error)))
         return dst
 
 
 def patch_copyfile():
-    """
-    Used to monkey patch shutil.copyfile()
-    """
+    """Monkey patch shutil.copyfile()."""
     if shutil.copyfile != copyfile:
         shutil._orig_copyfile = shutil.copyfile
         shutil.copyfile = copyfile
 
 
 def unpatch_copyfile():
-    """
-    Restore original function
-    """
+    """Restore original function."""
     shutil.copyfile = shutil._orig_copyfile
