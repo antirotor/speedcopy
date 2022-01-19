@@ -32,8 +32,8 @@ classifiers = [
 
 setup(name='speedcopy',
       version=version,
-      description=('Replacement or alternative for python copyfile()'
-                   'utilizing server side copy on network shares for faster'
+      description=('Replacement or alternative for python copyfile() '
+                   'utilizing server side copy on network shares for faster '
                    'copying.'),
       author='Ondrej Samohel',
       author_email='annatar@annatar.net',
