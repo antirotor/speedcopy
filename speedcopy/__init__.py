@@ -215,7 +215,7 @@ if not sys.platform.startswith("win32"):
                     if not _copyfile_sendfile(fsrc, fdst):
                         # sendfile is not available or failed, fallback
                         # to copyfileobj
-                        shutil.copyfileobj(src, dst)
+                        shutil.copyfileobj(fsrc, fdst)
 
         return dst
 
