@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "speedcopy"
+version = "2.1.2"
+description = ""
+authors = ["Ondrej Samohel <annatar@annatar.net>"]
+
+[tool.poetry.dependencies]
+python = "^3.6"
+pysendfile = {version = "^2.0.1", markers = "sys_platform == 'linux' or sys_platform == 'darwin'"}
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

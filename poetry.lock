@@ -1,0 +1,17 @@
+[[package]]
+name = "pysendfile"
+version = "2.0.1"
+description = "A Python interface to sendfile(2)"
+category = "main"
+optional = false
+python-versions = "*"
+
+[metadata]
+lock-version = "1.1"
+python-versions = "^3.6"
+content-hash = "87ac1cb13c0bf728fc986f18f291107b5df52554403203f9e854537b216b538a"
+
+[metadata.files]
+pysendfile = [
+    {file = "pysendfile-2.0.1.tar.gz", hash = "sha256:510a414b270986fba3c79cb76d90a4c910c701bfb43ff983a5d4e92846050e17"},
+]
