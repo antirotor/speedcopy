@@ -5,8 +5,8 @@ description = ""
 authors = ["Ondrej Samohel <annatar@annatar.net>"]
 
 [tool.poetry.dependencies]
-python = "^3.6"
-pysendfile = {version = "^2.0.1", markers = "sys_platform == 'linux' or sys_platform == 'darwin'"}
+python = ">=2.7"
+pysendfile = {version = "^2.0.1", markers = "sys_platform == 'linux' or sys_platform == 'darwin'", python = "~2.7"}
 
 [tool.poetry.dev-dependencies]
 
