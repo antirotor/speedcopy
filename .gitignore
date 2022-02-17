@@ -105,3 +105,4 @@ venv.bak/
 
 # poetry
 .poetry/
+.idea/
