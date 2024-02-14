@@ -220,10 +220,10 @@ if not sys.platform.startswith("win32"):
         return dst
 
 else:
-
-    # Initialize once on import
+    # Windows
+    # Initialize once on import for performance
     kernel32 = ctypes.WinDLL('kernel32',
-                             use_last_error=True, 
+                             use_last_error=True,
                              use_errno=True)
     try:
         COPYFILE = kernel32.CopyFile2
@@ -232,13 +232,13 @@ else:
         # on windows 7 and older
         COPYFILE = kernel32.CopyFileW
         is_copyfile2 = False
-        
+
     COPYFILE.restype = ctypes.HRESULT
 
     if is_copyfile2:
         # Skip alternate streams in CopyFile2
         from ctypes import wintypes
-        
+
         class COPYFILE2_EXTENDED_PARAMETERS(ctypes.Structure):
             """
             typedef struct COPYFILE2_EXTENDED_PARAMETERS {
@@ -260,7 +260,7 @@ else:
                 ("pProgressRoutine", ctypes.c_void_p),
                 ("pvCallbackContext", ctypes.c_void_p)
             ]
-            
+
         PARAMS = COPYFILE2_EXTENDED_PARAMETERS()
         PARAMS.dwSize = ctypes.sizeof(COPYFILE2_EXTENDED_PARAMETERS)
         PARAMS.dwCopyFlags = 0x00008000  # COPY_FILE_SKIP_ALTERNATE_STREAMS
@@ -269,13 +269,13 @@ else:
             ctypes.c_wchar_p,
             ctypes.POINTER(COPYFILE2_EXTENDED_PARAMETERS)
         )
-        
+
     else:
         COPYFILE.argtypes = (ctypes.c_wchar_p,
                              ctypes.c_wchar_p,
                              ctypes.c_void_p)
         PARAMS = None
-    
+
 
     def copyfile(src, dst, follow_symlinks=True):
         """Copy data from src to dst.
@@ -321,7 +321,7 @@ else:
 
         if not follow_symlinks and os.path.islink(src):
             os.symlink(os.readlink(src), dst)
-        else:    
+        else:
             source_file = os.path.abspath(os.path.normpath(src))
             dest_file = os.path.abspath(os.path.normpath(dst))
             if source_file.startswith('\\\\'):
