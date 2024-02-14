@@ -264,7 +264,7 @@ else:
         PARAMS = COPYFILE2_EXTENDED_PARAMETERS()
         PARAMS.dwSize = ctypes.sizeof(COPYFILE2_EXTENDED_PARAMETERS)
         PARAMS.dwCopyFlags = 0x00008000  # COPY_FILE_SKIP_ALTERNATE_STREAMS
-        copyfile.argtypes = (
+        COPYFILE.argtypes = (
             ctypes.c_wchar_p,
             ctypes.c_wchar_p,
             ctypes.POINTER(COPYFILE2_EXTENDED_PARAMETERS)
