@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "speedcopy"
-version = "2.1.4"
+version = "2.1.5"
 description = ""
 authors = ["Ondrej Samohel <annatar@annatar.net>"]
 
