@@ -2,7 +2,13 @@
 """Metadata file."""
 from setuptools import setup
 import os
-import imp
+import sys
+
+if sys.version_info < (3, 4):
+    import importlib as imp
+else:
+    import imp
+
 from io import open
 
 
@@ -25,6 +31,10 @@ classifiers = [
     "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: System :: Filesystems"
 

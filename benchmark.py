@@ -20,7 +20,7 @@ def generate_file(parent_dir, size_b):
 if __name__ == "__main__":
     try:
         dir = sys.argv[1]
-    except KeyError:
+    except (KeyError, IndexError):
         print("pass destination directory as an argument if you want")
         dir = None
 

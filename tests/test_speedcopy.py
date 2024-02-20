@@ -7,6 +7,7 @@ import os
 import pytest
 
 
+
 speedcopy.SPEEDCOPY_DEBUG = True
 _FILE_SIZE = 5 * 1024 * 1024
 
@@ -19,6 +20,56 @@ def setup_function(function):
 def teadown_function(function):
     """Test teardown."""
     speedcopy.unpatch_copyfile()
+
+
+@pytest.mark.skip(reason="pyxattr module is not by default installed")
+def  test_copy_extended_attributes(tmpdir):
+    """Test copy with extended attributes.
+    
+    This tries to copy file with extended attributes. It requires pyxattr
+    module to be installed.
+
+    Tests for issue #24.
+
+    """
+    import xattr  # noqa: F401
+
+    src = tmpdir.join("source")
+    dst = tmpdir.join("destination")
+
+    with open(str(src), "wb") as f:
+        f.write(os.urandom(_FILE_SIZE))
+    f.close()
+    xattr.setxattr(str(src), "user.comment", "xattr test")
+
+    shutil.copyfile(str(src), str(dst))
+
+    assert os.path.isfile(str(dst))
+    assert xattr.getxattr(str(dst), "user.comment") == "xattr test"
+
+
+def test_copy_alternate_data_streams(tmpdir):
+    """Test copy with alternate data streams.
+    
+    Speedcopy should ignore alternate data streams.
+    
+    """
+    src = tmpdir.join("source")
+    dst = tmpdir.join("destination")
+
+    with open(str(src), "wb") as f:
+        f.write(os.urandom(_FILE_SIZE))
+    f.close()
+    with open(str(src) + ":ads", "wb") as f:
+        f.write(os.urandom(_FILE_SIZE))
+    f.close()
+
+    shutil.copyfile(str(src), str(dst))
+
+    # alternate data stream should be ignored, but the file it
+    # is attached to should be copied
+    assert os.path.isfile(str(dst))
+    assert not os.path.isfile(str(dst) + ":ads")
 
 
 def test_copy_abs(tmpdir):
