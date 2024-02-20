@@ -220,6 +220,63 @@ if not sys.platform.startswith("win32"):
         return dst
 
 else:
+    # Windows
+    # Initialize once on import for performance
+    kernel32 = ctypes.WinDLL('kernel32',
+                             use_last_error=True,
+                             use_errno=True)
+    try:
+        COPYFILE = kernel32.CopyFile2
+        is_copyfile2 = True
+    except AttributeError:
+        # on windows 7 and older
+        COPYFILE = kernel32.CopyFileW
+        is_copyfile2 = False
+
+    COPYFILE.restype = ctypes.HRESULT
+
+    if is_copyfile2:
+        # Skip alternate streams in CopyFile2
+        from ctypes import wintypes
+
+        class COPYFILE2_EXTENDED_PARAMETERS(ctypes.Structure):
+            """
+            typedef struct COPYFILE2_EXTENDED_PARAMETERS {
+              DWORD                       dwSize;
+              DWORD                       dwCopyFlags;
+              BOOL                        *pfCancel;
+              PCOPYFILE2_PROGRESS_ROUTINE pProgressRoutine;
+              PVOID                       pvCallbackContext;
+            } COPYFILE2_EXTENDED_PARAMETERS;
+            """
+
+            _fields_ = [
+                ("dwSize", wintypes.DWORD),
+                ("dwCopyFlags", wintypes.DWORD),
+                # The rest isn't actually void, but by making these
+                # voids the call speed is much faster - especially with
+                # pProgressRoutine as void instead of WINFUNCTYPE
+                ("pfCancel", ctypes.c_void_p),
+                ("pProgressRoutine", ctypes.c_void_p),
+                ("pvCallbackContext", ctypes.c_void_p)
+            ]
+
+        PARAMS = COPYFILE2_EXTENDED_PARAMETERS()
+        PARAMS.dwSize = ctypes.sizeof(COPYFILE2_EXTENDED_PARAMETERS)
+        PARAMS.dwCopyFlags = 0x00008000  # COPY_FILE_SKIP_ALTERNATE_STREAMS
+        COPYFILE.argtypes = (
+            ctypes.c_wchar_p,
+            ctypes.c_wchar_p,
+            ctypes.POINTER(COPYFILE2_EXTENDED_PARAMETERS)
+        )
+
+    else:
+        COPYFILE.argtypes = (ctypes.c_wchar_p,
+                             ctypes.c_wchar_p,
+                             ctypes.c_void_p)
+        PARAMS = None
+
+
     def copyfile(src, dst, follow_symlinks=True):
         """Copy data from src to dst.
 
@@ -265,19 +322,6 @@ else:
         if not follow_symlinks and os.path.islink(src):
             os.symlink(os.readlink(src), dst)
         else:
-            kernel32 = ctypes.WinDLL('kernel32',
-                                     use_last_error=True, use_errno=True)
-            try:
-                copyfile = kernel32.CopyFile2
-            except AttributeError:
-                # on windows 7 and older
-                copyfile = kernel32.CopyFileW
-
-            copyfile.argtypes = (ctypes.c_wchar_p,
-                                 ctypes.c_wchar_p,
-                                 ctypes.c_void_p)
-            copyfile.restype = ctypes.HRESULT
-
             source_file = os.path.abspath(os.path.normpath(src))
             dest_file = os.path.abspath(os.path.normpath(dst))
             if source_file.startswith('\\\\'):
@@ -285,8 +329,8 @@ else:
             if dest_file.startswith('\\\\'):
                 dest_file = 'UNC\\' + dest_file[2:]
 
-            ret = copyfile('\\\\?\\' + source_file,
-                           '\\\\?\\' + dest_file, None)
+            ret = COPYFILE('\\\\?\\' + source_file,
+                           '\\\\?\\' + dest_file, PARAMS)
 
             if ret == 0:
                 error = ctypes.get_last_error()

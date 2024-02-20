@@ -1,14 +1,25 @@
 [tool.poetry]
 name = "speedcopy"
-version = "2.1.3"
+version = "2.1.4"
 description = ""
 authors = ["Ondrej Samohel <annatar@annatar.net>"]
 
 [tool.poetry.dependencies]
 python = ">=2.7"
+setuptools = "*"
 pysendfile = {version = "^2.0.1", markers = "(sys_platform == 'linux' or sys_platform == 'darwin') and python_version ~= '2.7'"}
 
 [tool.poetry.dev-dependencies]
+# pytest should be here, but since it is very difficult to
+# support py27 with it, we are not defining it here and it
+# must be handled manually if needed.
+# pytest = "*"
+
+
+# this is used only in tests to check if we can deal with extended filesystem attribute
+# there is issue with VS 2019 and later with this package so it is commented out.
+# is there any other python package to set extended attributes on filesystem?
+# pyxattr = "^0.8"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
