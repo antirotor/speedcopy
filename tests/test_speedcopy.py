@@ -7,7 +7,6 @@ import os
 import pytest
 
 
-
 speedcopy.SPEEDCOPY_DEBUG = True
 _FILE_SIZE = 5 * 1024 * 1024
 
@@ -23,9 +22,9 @@ def teadown_function(function):
 
 
 @pytest.mark.skip(reason="pyxattr module is not by default installed")
-def  test_copy_extended_attributes(tmpdir):
+def test_copy_extended_attributes(tmpdir):
     """Test copy with extended attributes.
-    
+
     This tries to copy file with extended attributes. It requires pyxattr
     module to be installed.
 
@@ -50,9 +49,9 @@ def  test_copy_extended_attributes(tmpdir):
 
 def test_copy_alternate_data_streams(tmpdir):
     """Test copy with alternate data streams.
-    
+
     Speedcopy should ignore alternate data streams.
-    
+
     """
     src = tmpdir.join("source")
     dst = tmpdir.join("destination")
