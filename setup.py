@@ -4,11 +4,6 @@ from setuptools import setup
 import os
 import sys
 
-if sys.version_info > (3, 4):
-    import importlib as imp
-else:
-    import imp
-
 from io import open
 
 
@@ -17,7 +12,13 @@ with open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 version_file = os.path.abspath("speedcopy/version.py")
-version_mod = imp.load_source("version", version_file)
+
+if sys.version_info > (3, 4):
+    from importlib.machinery import SourceFileLoader
+    version_mod = SourceFileLoader("version", version_file).load_module()
+else:
+    import imp
+    version_mod = imp.load_source("version", version_file)
 version = version_mod.version
 
 classifiers = [
