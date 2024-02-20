@@ -5,22 +5,24 @@ on:
     types: [created]
 
 jobs:
-  deploy:
+  pypi-publish:
+    name: Publish to PyPI
     runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: https://pypi.org/project/${{ github.repository }}
+    permissions:
+      id-token: write
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
     - name: Set up Python
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.x'
-    - name: Install dependencies
+        python-version: '3.9'
+    - name: Install dependencies and build
       run: |
         python -m pip install --upgrade pip
-        pip install setuptools wheel twine
-    - name: Build and publish
-      env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-      run: |
+        pip install setuptools wheel
         python setup.py sdist bdist_wheel
-        twine upload dist/*
+    - name: Build and publish
+      uses: pypa/gh-action-pypi-publish@release/v1

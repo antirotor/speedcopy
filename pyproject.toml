@@ -1,8 +1,9 @@
 [tool.poetry]
 name = "speedcopy"
 version = "2.1.5"
-description = ""
+description = "Replacement or alternative for python copyfile() utilizing server side copy on network shares for faster copying."
 authors = ["Ondrej Samohel <annatar@annatar.net>"]
+license = "MIT License"
 
 [tool.poetry.dependencies]
 python = ">=2.7"
