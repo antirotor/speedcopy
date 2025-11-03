@@ -1,27 +1,54 @@
-[tool.poetry]
+[project]
 name = "speedcopy"
 version = "2.1.5"
 description = "Replacement or alternative for python copyfile() utilizing server side copy on network shares for faster copying."
-authors = ["Ondrej Samohel <annatar@annatar.net>"]
-license = "MIT License"
+authors = [
+    {name = "Ondrej Samohel", email = "annatar@annatar.net"}
+]
 
-[tool.poetry.dependencies]
-python = ">=2.7"
-setuptools = "*"
-pysendfile = {version = "^2.0.1", markers = "(sys_platform == 'linux' or sys_platform == 'darwin') and python_version ~= '2.7'"}
+license = {file = "LICENSE"}
+readme = "README.md"
+keywords = ["copy", "files", "filesystem", "network", "smb", "samba", "speed"]
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: System :: Filesystems",
+    "Topic :: Utilities",
+]
 
-[tool.poetry.dev-dependencies]
-# pytest should be here, but since it is very difficult to
-# support py27 with it, we are not defining it here and it
-# must be handled manually if needed.
-# pytest = "*"
+dependencies = [
+    "typing-extensions"
+]
+
+[project.urls]
+homepage = "https://github.com/antirotor/speedcopy"
+repository = "https://github.com/antirotor/speedcopy"
 
 
-# this is used only in tests to check if we can deal with extended filesystem attribute
-# there is issue with VS 2019 and later with this package so it is commented out.
-# is there any other python package to set extended attributes on filesystem?
-# pyxattr = "^0.8"
+[project.optional-dependencies]
+dev = [
+    "ruff ~= 0.14",
+    "pytest",
+    "codespell",
+    "mypy"
+
+]
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["uv_build>=0.9.6,<0.10.0"]
+build-backend = "uv_build"
+
+
+[tool.uv.build-backend]
+module-name = "speedcopy"
+module-root = ""
