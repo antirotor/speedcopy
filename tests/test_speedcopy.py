@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 """Tests for speedcopy."""
-
-import shutil
-import speedcopy
 import os
+import shutil
+
 import pytest
 
+import speedcopy
 
 speedcopy.SPEEDCOPY_DEBUG = True
 _FILE_SIZE = 5 * 1024 * 1024
