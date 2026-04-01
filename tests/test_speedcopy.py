@@ -1,27 +1,20 @@
 """Tests for speedcopy."""
+from __future__ import annotations
+
 import os
 import shutil
 
 import pytest
 
 import speedcopy
+from typing import Callable
 
-speedcopy.SPEEDCOPY_DEBUG = True
 _FILE_SIZE = 5 * 1024 * 1024
 
 
-def setup_function(function):
-    """Test setup."""
-    speedcopy.patch_copyfile()
-
-
-def teadown_function(function):
-    """Test teardown."""
-    speedcopy.unpatch_copyfile()
-
 
 @pytest.mark.skip(reason="pyxattr module is not by default installed")
-def test_copy_extended_attributes(tmpdir):
+def test_copy_extended_attributes(tmp_path_factory: pytest.TempPathFactory) -> None:
     """Test copy with extended attributes.
 
     This tries to copy file with extended attributes. It requires pyxattr
@@ -29,64 +22,77 @@ def test_copy_extended_attributes(tmpdir):
 
     Tests for issue #24.
 
+    Args:
+        tmp_path: pytest fixture for temporary directory.
+
     """
-    import xattr  # noqa: F401
+    import xattr
 
-    src = tmpdir.join("source")
-    dst = tmpdir.join("destination")
+    tmp_path = tmp_path_factory.mktemp("test_copy_extended_attributes")
 
-    with open(str(src), "wb") as f:
+    src = tmp_path / "source"
+    dst = tmp_path / "destination"
+
+    with open(src, "wb") as f:
         f.write(os.urandom(_FILE_SIZE))
     f.close()
-    xattr.setxattr(str(src), "user.comment", "xattr test")
+    xattr.setxattr(src.as_posix(), "user.comment", "xattr test")
 
-    shutil.copyfile(str(src), str(dst))
+    shutil.copyfile(src, dst)
 
     assert os.path.isfile(str(dst))
-    assert xattr.getxattr(str(dst), "user.comment") == "xattr test"
+    assert xattr.getxattr(dst.as_posix(), "user.comment") == "xattr test"
 
 
-def test_copy_alternate_data_streams(tmpdir):
+def test_copy_alternate_data_streams(tmp_path_factory: pytest.TempPathFactory) -> None:
     """Test copy with alternate data streams.
 
     Speedcopy should ignore alternate data streams.
 
+    Args:
+        tmp_path: pytest fixture for temporary directory.
+
+
     """
-    src = tmpdir.join("source")
-    dst = tmpdir.join("destination")
+    tmp_path = tmp_path_factory.mktemp("test_copy_alternate_data_streams")
 
-    with open(str(src), "wb") as f:
+    src = tmp_path / "source"
+    dst = tmp_path / "destination"
+
+    with open(src, "wb") as f:
         f.write(os.urandom(_FILE_SIZE))
     f.close()
-    with open(str(src) + ":ads", "wb") as f:
+    with open(src.as_posix() + ":ads", "wb") as f:
         f.write(os.urandom(_FILE_SIZE))
     f.close()
 
-    shutil.copyfile(str(src), str(dst))
+    shutil.copyfile(src, dst)
 
     # alternate data stream should be ignored, but the file it
     # is attached to should be copied
-    assert os.path.isfile(str(dst))
-    assert not os.path.isfile(str(dst) + ":ads")
+    assert dst.exists()
+    assert not os.path.isfile(dst.as_posix() + ":ads")
 
 
-def test_copy_abs(tmpdir):
+def test_copy_abs(tmp_path_factory: pytest.TempPathFactory):
     """Test copy from absolute paths."""
-    src = tmpdir.join("source")
-    dst = tmpdir.join("destination")
-    with open(str(src), "wb") as f:
+    tmp_path = tmp_path_factory.mktemp("test_copy_abs")
+    src = tmp_path / "source"
+    dst = tmp_path / "destination"
+    with open(src, "wb") as f:
         f.write(os.urandom(_FILE_SIZE))
     f.close()
 
-    shutil.copyfile(str(src), str(dst))
+    shutil.copyfile(src, dst)
 
-    assert os.path.isfile(str(dst))
+    assert os.path.isfile(dst)
 
 
-def test_copy_rel(tmpdir):
+def test_copy_rel(tmp_path_factory: pytest.TempPathFactory):
     """Test copy from relative paths."""
     cwd = os.getcwd()
-    os.chdir(str(tmpdir))
+    tmp_path = tmp_path_factory.mktemp("test_copy_rel")
+    os.chdir(str(tmp_path))
 
     try:
         src = "source"
@@ -102,21 +108,25 @@ def test_copy_rel(tmpdir):
         os.chdir(cwd)
 
 
-def test_errors(tmpdir):
+def test_errors(tmp_path_factory: pytest.TempPathFactory):
     """Exception IOError should be raised if file doesn't exist."""
-    src = tmpdir.join("source")
-    dst = tmpdir.join("destination")
+    tmp_path = tmp_path_factory.mktemp("test_errors")
+    src = tmp_path / "source"
+    dst = tmp_path / "destination"
 
     with pytest.raises((IOError, OSError)):
-        shutil.copyfile(str(src), str(dst))
+        shutil.copyfile(src, dst)
 
 
 def test_patch():
     """Test if copyfile is patched."""
+    speedcopy.patch_copyfile()
     assert shutil.copyfile == speedcopy.copyfile
+    assert hasattr(shutil, "_orig_copyfile")
 
 
 def test_unpatch():
     """Test if copyfile is restored."""
+    speedcopy.patch_copyfile()
     speedcopy.unpatch_copyfile()
     assert shutil.copyfile == shutil._orig_copyfile

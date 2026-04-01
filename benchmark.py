@@ -1,3 +1,4 @@
+"""Benchmark the speed of the patched copyfile against the original copyfile."""
 import sys
 import tempfile
 import timeit
@@ -8,8 +9,17 @@ from pprint import pprint
 FILE_SIZES_MB = tuple(2 ** x for x in range(12))
 
 
-def generate_file(parent_dir, size_b):
-    """ Generate a file, write random data to it, and return its filepath. """
+def generate_file(parent_dir: str, size_b: int) -> str:
+    """ Generate a file, write random data to it, and return its filepath.
+    
+    Args:
+        parent_dir: Directory to create the file in.
+        size_b: Size of the file in megabytes.
+
+    Returns:
+        The filepath of the generated file.
+    
+    """
     fd, filepath = tempfile.mkstemp(dir=parent_dir)
     with open(filepath, 'wb') as f:
         f.write(os.urandom(size_b * 1024 * 1024))
@@ -30,6 +40,7 @@ if __name__ == "__main__":
         for file_size_mb in FILE_SIZES_MB:
             print("--- Testing filesize: {} Mb".format(file_size_mb))
             datapoint = []
+            raw_dp = 0
             try:
                 src = generate_file(tmp_dir, file_size_mb)
                 dst = "%s.dst" % (src)
