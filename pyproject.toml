@@ -78,10 +78,6 @@ ignore = [
     "RUF067",  # code in __init__.py__
 ]
 
-per-file-ignores = [
-{"tests/*.py" = ["S101", "PLR2004"]}  # allow asserts and magical values
-]
-
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
 unfixable = []
@@ -102,3 +98,6 @@ skip-magic-trailing-comma = false
 
 # Like Black, automatically detect the appropriate line ending.
 line-ending = "auto"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*.py" = ["S101", "PLR2004"]  # allow asserts and magical values
