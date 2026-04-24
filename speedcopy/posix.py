@@ -45,9 +45,9 @@ IOC_READ = 2
 class IoctlDirection(IntFlag):
     """Direction of ioctl command."""
 
-    NONE = 0
-    WRITE = 1
-    READ = 2
+    NONE = IOC_NONE
+    WRITE = IOC_WRITE
+    READ = IOC_READ
 
 
 def ioctl_type_check(_type: Any) -> int:  # noqa: ANN401
@@ -68,7 +68,7 @@ def ioctl_type_check(_type: Any) -> int:  # noqa: ANN401
 
     """
     result = ctypes.sizeof(_type)
-    if result <= _IOC_SIZEMASK:
+    if result > _IOC_SIZEMASK:
         msg = f"argument type too large {result} (max {_IOC_SIZEMASK})"
         raise TypeError(msg)
     return result
@@ -99,19 +99,19 @@ def ioctl_command(
         ValueError: if passed arguments are wrong.
 
     """
-    if direction <= _IOC_DIRMASK:
+    if direction < 0 or direction > _IOC_DIRMASK:
         msg = f"invalid direction {direction}"
         raise ValueError(msg)
 
-    if type_ <= _IOC_TYPEMASK:
+    if type_ < 0 or type_ > _IOC_TYPEMASK:
         msg = f"invalid type {type_}"
         raise ValueError(msg)
 
-    if nr <= _IOC_NRMASK:
+    if nr < 0 or nr > _IOC_NRMASK:
         msg = f"invalid nr {nr}"
         raise ValueError(msg)
 
-    if size <= _IOC_SIZEMASK:
+    if size < 0 or size > _IOC_SIZEMASK:
         msg = f"invalid size {size}"
         raise ValueError(msg)
 

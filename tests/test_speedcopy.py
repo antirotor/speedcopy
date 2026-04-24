@@ -259,3 +259,58 @@ def test_unpatch() -> None:
     speedcopy.patch_copyfile()
     speedcopy.unpatch_copyfile()
     assert shutil.copyfile == shutil.__dict__["_orig_copyfile"]
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX-only backend test")
+def test_posix_ioctl_type_check_accepts_c_int() -> None:
+    """ioctl_type_check accepts normal ctype argument sizes."""
+    import speedcopy.posix as posix_copyfile
+
+    assert posix_copyfile.ioctl_type_check(posix_copyfile.c_int) == 4
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX-only backend test")
+def test_posix_ioctl_command_validates_bounds() -> None:
+    """ioctl_command accepts in-range fields and rejects out-of-range ones."""
+    import speedcopy.posix as posix_copyfile
+
+    cmd = posix_copyfile.ioctl_command(
+        posix_copyfile.IoctlDirection.WRITE,
+        0xCF,
+        3,
+        posix_copyfile.ioctl_type_check(posix_copyfile.c_int),
+    )
+
+    assert isinstance(cmd, int)
+
+    with pytest.raises(ValueError, match="invalid direction"):
+        posix_copyfile.ioctl_command(
+            4,
+            0xCF,
+            3,
+            4,
+        )
+
+    with pytest.raises(ValueError, match="invalid type"):
+        posix_copyfile.ioctl_command(
+            posix_copyfile.IoctlDirection.WRITE,
+            256,
+            3,
+            4,
+        )
+
+    with pytest.raises(ValueError, match="invalid nr"):
+        posix_copyfile.ioctl_command(
+            posix_copyfile.IoctlDirection.WRITE,
+            0xCF,
+            256,
+            4,
+        )
+
+    with pytest.raises(ValueError, match="invalid size"):
+        posix_copyfile.ioctl_command(
+            posix_copyfile.IoctlDirection.WRITE,
+            0xCF,
+            3,
+            posix_copyfile._IOC_SIZEMASK + 1,  # noqa: SLF001
+        )
