@@ -181,6 +181,9 @@ class FilesystemInfo:
         except OSError as e:
             msg = "File descriptor does not exist."
             raise ValueError(msg) from e
+        if fileno < 0:
+            msg = "File descriptor is invalid."
+            raise ValueError(msg)
         err = self._fstatfs(fileno, ctypes.byref(buf))
         if err == -1:
             errno = ctypes.get_errno()
