@@ -128,7 +128,7 @@ def ioctl_command(
         | (type_ << _IOC_TYPESHIFT)
         | (nr << _IOC_NRSHIFT)
         | (size << _IOC_SIZESHIFT)
-    )  # noqa: E501
+    )
 
 
 def ioctl_write(type_: int, nr: int, type_size: Type[c_int]) -> int:

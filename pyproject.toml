@@ -76,6 +76,8 @@ ignore = [
     "PLC0415", # import must be on top of the file
     "CPY001",  # missing copyright header
     "RUF067",  # code in __init__.py__
+    "D203",
+    "D213",
 ]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
