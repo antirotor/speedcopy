@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import os
 import shutil
+import threading
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
@@ -116,6 +118,44 @@ def test_copy_rel(tmp_path_factory: pytest.TempPathFactory) -> None:
         assert os.path.isfile(str(dst))
     finally:
         os.chdir(cwd)
+
+
+def test_copy_threadpool_multi_thread(
+        tmp_path_factory: pytest.TempPathFactory) -> None:
+    """Test concurrent copy operations using a thread pool."""
+    tmp_path = tmp_path_factory.mktemp("test_copy_threadpool_multi_thread")
+    pairs = []
+    for idx in range(8):
+        src = tmp_path / f"source_{idx}"
+        dst = tmp_path / f"destination_{idx}"
+        payload = bytes([idx]) * (64 * 1024)
+        src.write_bytes(payload)
+        pairs.append((src, dst))
+
+    thread_ids: set[int] = set()
+    lock = threading.Lock()
+
+    def copy_one(src_dst: tuple[os.PathLike[str], os.PathLike[str]]) -> None:
+        src, dst = src_dst
+        with lock:
+            thread_ids.add(threading.get_ident())
+        shutil.copyfile(src, dst)
+
+    was_patched = shutil.copyfile == speedcopy.copyfile
+    if not was_patched:
+        speedcopy.patch_copyfile()
+
+    try:
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            list(executor.map(copy_one, pairs))
+    finally:
+        if not was_patched:
+            speedcopy.unpatch_copyfile()
+
+    assert len(thread_ids) >= 2
+    for src, dst in pairs:
+        assert dst.exists()
+        assert src.read_bytes() == dst.read_bytes()
 
 
 def test_errors(tmp_path_factory: pytest.TempPathFactory) -> None:
