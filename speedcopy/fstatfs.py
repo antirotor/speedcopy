@@ -32,7 +32,7 @@ class FsTypes:
         "BEFS_SUPER_MAGIC": 0x42465331,
         "BFS_MAGIC": 0x1BADFACE,
         "BTRFS_SUPER_MAGIC": 0x9123683E,
-        "CIFS_MAGIC_NUMBER": 0xFF534D42,
+        "CIFS_SUPER_MAGIC": 0xFF534D42,
         "CODA_SUPER_MAGIC": 0x73757245,
         "COH_SUPER_MAGIC": 0x012FF7B7,
         "CRAMFS_MAGIC": 0x28cd3d45,
@@ -176,10 +176,11 @@ class FilesystemInfo:
 
         """
         buf = statfs_t()
-        fileno = fd.fileno()
-        if not fileno:
+        try:
+            fileno = fd.fileno()
+        except OSError as e:
             msg = "File descriptor does not exist."
-            raise ValueError(msg)
+            raise ValueError(msg) from e
         err = self._fstatfs(fileno, ctypes.byref(buf))
         if err == -1:
             errno = ctypes.get_errno()
