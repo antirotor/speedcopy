@@ -113,7 +113,7 @@ def test_fstatfs_raises_value_error_for_missing_descriptor() -> None:
     """fstatfs() rejects false-y file descriptors."""
     fs_info = StubFilesystemInfo(lambda _path, _buf: 0, lambda _fd, _buf: 0)
 
-    with pytest.raises(ValueError, match="File descriptor does not exist"):
+    with pytest.raises(ValueError, match="File descriptor is invalid"):
         fs_info.fstatfs(cast("IOBase", DummyFd(-1)))
 
 
