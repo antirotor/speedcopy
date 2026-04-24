@@ -63,7 +63,7 @@ else:
     PARAMS = None
 
 
-def copyfile(  # noqa: C901
+def copyfile(  # noqa: C901, PLR0912
         src: Union[str, os.PathLike],
         dst: Union[str, os.PathLike],
         *,
@@ -122,6 +122,11 @@ def copyfile(  # noqa: C901
             dest_file = "UNC\\" + dest_file[2:]
 
         ret = COPYFILE("\\\\?\\" + source_file, "\\\\?\\" + dest_file, PARAMS)
+        # CopyFileW and CopyFile2 have different return values,
+        # so we need to check them separately.
+        # CopyFile2 returns an HRESULT, while CopyFileW returns a BOOL.
+        if not is_copyfile2 and ret is True:
+            return dst
 
         if ret == 0:
             error = ctypes.get_last_error()
@@ -136,4 +141,9 @@ def copyfile(  # noqa: C901
                 f"File {src!r} copy failed, error: {ctypes.FormatError(error)}"
             )
             raise OSError(msg)
+
+        # at this point we know that copying failed
+        msg = f"File {src!r} copy failed with HRESULT: {ret:#x}"
+        raise OSError(msg)
+
     return dst
