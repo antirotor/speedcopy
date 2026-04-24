@@ -11,13 +11,16 @@ from typing import Union
 kernel32 = ctypes.WinDLL("kernel32", use_last_error=True, use_errno=True)
 try:
     COPYFILE = kernel32.CopyFile2
+    # CopyFile2 returns HRESULT: 0 = S_OK (success); ctypes raises
+    # OSError automatically on failure.
+    COPYFILE.restype = ctypes.HRESULT
     is_copyfile2 = True
 except AttributeError:
     # on Windows 7 and older
     COPYFILE = kernel32.CopyFileW
+    # CopyFileW returns BOOL: non-zero = success, 0 = failure.
+    COPYFILE.restype = ctypes.c_int
     is_copyfile2 = False
-
-COPYFILE.restype = ctypes.HRESULT
 
 ERROR_IO_PENDING: int = 997
 
@@ -121,29 +124,31 @@ def copyfile(  # noqa: C901, PLR0912
         if dest_file.startswith("\\\\"):
             dest_file = "UNC\\" + dest_file[2:]
 
-        ret = COPYFILE("\\\\?\\" + source_file, "\\\\?\\" + dest_file, PARAMS)
-        # CopyFileW and CopyFile2 have different return values,
-        # so we need to check them separately.
-        # CopyFile2 returns an HRESULT, while CopyFileW returns a BOOL.
-        if not is_copyfile2 and ret is True:
-            return dst
-
-        if ret == 0:
-            error = ctypes.get_last_error()
-            if error == 0:
-                return dst
-            # 997 is ERROR_IO_PENDING. Why it is poping here with
-            # CopyFileW is beyond me, but  assume we can easily
-            # ignore it as it is copying nevertheless
-            if error == ERROR_IO_PENDING:
-                return dst
-            msg = (
-                f"File {src!r} copy failed, error: {ctypes.FormatError(error)}"
+        if is_copyfile2:
+            # CopyFile2 restype=HRESULT; ctypes raises OSError
+            # automatically on failure. If we reach this point,
+            # the copy succeeded.
+            COPYFILE(
+                "\\\\?\\" + source_file,
+                "\\\\?\\" + dest_file,
+                PARAMS,
             )
-            raise OSError(msg)
-
-        # at this point we know that copying failed
-        msg = f"File {src!r} copy failed with HRESULT: {ret:#x}"
-        raise OSError(msg)
+        else:
+            # CopyFileW returns BOOL: non-zero = success, 0 = failure.
+            ret = COPYFILE(
+                "\\\\?\\" + source_file,
+                "\\\\?\\" + dest_file,
+                PARAMS,
+            )
+            if not ret:
+                error = ctypes.get_last_error()
+                # ERROR_IO_PENDING (997): copy is in progress,
+                # treat as success.
+                if error not in {0, ERROR_IO_PENDING}:
+                    msg = (
+                        f"File {src!r} copy failed, "
+                        f"error: {ctypes.FormatError(error)}"
+                    )
+                    raise OSError(msg)
 
     return dst
