@@ -33,4 +33,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
+      - name: Install Environment
+        run: uv sync --all-extras
       - run: uv run pytest
