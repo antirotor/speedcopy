@@ -6,5 +6,5 @@ __all__ = [
     "__version__",
     "copyfile",
     "patch_copyfile",
-    "unpatch_copyfile",
+    "unpatch_copyfile"
 ]
