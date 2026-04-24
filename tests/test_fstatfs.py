@@ -64,7 +64,7 @@ def test_statfs_returns_populated_statfs_buffer() -> None:
 
     def fake_statfs(path: bytes, buf_ref: object) -> int:
         assert path == b"/share/source"
-        _set_fs_type(buf_ref, FsTypes.filesystems["CIFS_MAGIC_NUMBER"])
+        _set_fs_type(buf_ref, FsTypes.filesystems["CIFS_SUPER_MAGIC"])
         return 0
 
     fs_info = StubFilesystemInfo(fake_statfs, lambda _fd, _buf: 0)
@@ -72,7 +72,7 @@ def test_statfs_returns_populated_statfs_buffer() -> None:
     result = fs_info.statfs("/share/source")
 
     assert isinstance(result, statfs_t)
-    assert result.f_type == FsTypes.filesystems["CIFS_MAGIC_NUMBER"]
+    assert result.f_type == FsTypes.filesystems["CIFS_SUPER_MAGIC"]
 
 
 def test_statfs_raises_oserror_on_native_error(
@@ -139,7 +139,7 @@ def test_filesystem_routes_to_statfs_for_paths() -> None:
 
     def fake_statfs(path: bytes, buf_ref: object) -> int:
         assert path == b"/mnt/share"
-        _set_fs_type(buf_ref, FsTypes.filesystems["CIFS_MAGIC_NUMBER"])
+        _set_fs_type(buf_ref, FsTypes.filesystems["CIFS_SUPER_MAGIC"])
         return 0
 
     fs_info = StubFilesystemInfo(fake_statfs, lambda _fd, _buf: 0)
@@ -165,7 +165,7 @@ def test_filesystem_accepts_pathlike_paths() -> None:
 
     def fake_statfs(path: bytes, buf_ref: object) -> int:
         assert path == os.fsencode("/mnt/pathlike")
-        _set_fs_type(buf_ref, FsTypes.filesystems["CIFS_MAGIC_NUMBER"])
+        _set_fs_type(buf_ref, FsTypes.filesystems["CIFS_SUPER_MAGIC"])
         return 0
 
     fs_info = StubFilesystemInfo(fake_statfs, lambda _fd, _buf: 0)
