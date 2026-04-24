@@ -9,7 +9,7 @@ from __future__ import annotations
 import ctypes
 import ctypes.util
 import os
-from typing import TYPE_CHECKING, ClassVar, Union
+from typing import TYPE_CHECKING, ClassVar, Union, cast
 
 if TYPE_CHECKING:
     from io import IOBase
@@ -133,7 +133,7 @@ class FilesystemInfo:
         self._fstatfs.argtypes = [ctypes.c_int, ctypes.POINTER(statfs_t)]
         self._fstatfs.rettype = ctypes.c_int
 
-    def statfs(self, path: str) -> statfs_t:
+    def statfs(self, path: Union[str, bytes, os.PathLike]) -> statfs_t:
         """Get information about mounted file system by path.
 
         Args:
@@ -147,12 +147,16 @@ class FilesystemInfo:
             OSError: if the path does not exist.
 
         """
+        fs_path = os.fspath(path)
+        path_bytes = os.fsencode(fs_path)
+        path_text = os.fsdecode(fs_path)
+
         buf = statfs_t()
-        err = self._statfs(path, ctypes.byref(buf))
+        err = self._statfs(path_bytes, ctypes.byref(buf))
         if err == -1:
             errno = ctypes.get_errno()
             msg = (
-                f"{os.strerror(errno)} path: {path}"
+                f"{os.strerror(errno)} path: {path_text}"
             )
             raise OSError(errno, msg)
         return buf
@@ -182,7 +186,10 @@ class FilesystemInfo:
             raise OSError(errno, os.strerror(errno))
         return buf
 
-    def filesystem(self, path_or_fd: Union[str, IOBase]) -> str:
+    def filesystem(
+        self,
+        path_or_fd: Union[str, bytes, os.PathLike, IOBase],
+    ) -> str:
         """Get the filesystem type a file/path is on.
 
         Args:
@@ -197,12 +204,12 @@ class FilesystemInfo:
 
         """
         if hasattr(path_or_fd, "fileno"):
-            buf = self.fstatfs(path_or_fd)
+            buf = self.fstatfs(cast("IOBase", path_or_fd))
         else:
             buf = self.statfs(path_or_fd)
 
         if not buf:
-            msg = f"Could not get filesystem information for {path_or_fd}"
+            msg = f"Could not get filesystem information for {path_or_fd!r}"
             raise ValueError(msg)
         f_types = FsTypes().types
         try:

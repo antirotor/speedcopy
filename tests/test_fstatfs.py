@@ -3,7 +3,10 @@ from __future__ import annotations
 
 import ctypes
 import errno
-from typing import Callable
+import os
+from io import IOBase
+from pathlib import Path
+from typing import Callable, cast
 
 import pytest
 
@@ -16,7 +19,7 @@ except (AttributeError, OSError, TypeError):
     )
 
 
-class DummyFd:
+class DummyFd(IOBase):
     """Simple file-like object exposing fileno()."""
 
     def __init__(self, fd: int) -> None:
@@ -38,25 +41,29 @@ class StubFilesystemInfo(FilesystemInfo):
 
     def __init__(
         self,
-        statfs_impl: Callable[[str, object], int],
+        statfs_impl: Callable[[bytes, object], int],
         fstatfs_impl: Callable[[int, object], int],
     ) -> None:
         """Inject stub syscall functions used by FilesystemInfo methods."""
+        super().__init__()
         self._statfs = statfs_impl
         self._fstatfs = fstatfs_impl
 
 
 def _set_fs_type(buf_ref: object, fs_type: int) -> None:
     """Populate f_type on a statfs_t byref pointer."""
-    ptr = ctypes.cast(buf_ref, ctypes.POINTER(statfs_t))
+    ptr = ctypes.cast(  # type: ignore[arg-type]
+        buf_ref,
+        ctypes.POINTER(statfs_t),
+    )
     ptr.contents.f_type = fs_type
 
 
 def test_statfs_returns_populated_statfs_buffer() -> None:
     """statfs() returns a buffer filled by the native call."""
 
-    def fake_statfs(path: str, buf_ref: object) -> int:
-        assert path == "/share/source"
+    def fake_statfs(path: bytes, buf_ref: object) -> int:
+        assert path == b"/share/source"
         _set_fs_type(buf_ref, FsTypes.filesystems["CIFS_MAGIC_NUMBER"])
         return 0
 
@@ -73,7 +80,7 @@ def test_statfs_raises_oserror_on_native_error(
 ) -> None:
     """statfs() surfaces errno and path details on failure."""
 
-    def fake_statfs(_path: str, _buf_ref: object) -> int:
+    def fake_statfs(_path: bytes, _buf_ref: object) -> int:
         return -1
 
     fs_info = StubFilesystemInfo(fake_statfs, lambda _fd, _buf: 0)
@@ -96,7 +103,7 @@ def test_fstatfs_returns_populated_statfs_buffer() -> None:
 
     fs_info = StubFilesystemInfo(lambda _path, _buf: 0, fake_fstatfs)
 
-    result = fs_info.fstatfs(DummyFd(9))
+    result = fs_info.fstatfs(cast("IOBase", DummyFd(9)))
 
     assert isinstance(result, statfs_t)
     assert result.f_type == FsTypes.filesystems["SMB2_SUPER_MAGIC"]
@@ -107,7 +114,7 @@ def test_fstatfs_raises_value_error_for_missing_descriptor() -> None:
     fs_info = StubFilesystemInfo(lambda _path, _buf: 0, lambda _fd, _buf: 0)
 
     with pytest.raises(ValueError, match="File descriptor does not exist"):
-        fs_info.fstatfs(DummyFd(0))
+        fs_info.fstatfs(cast("IOBase", DummyFd(0)))
 
 
 def test_fstatfs_raises_oserror_on_native_error(
@@ -122,7 +129,7 @@ def test_fstatfs_raises_oserror_on_native_error(
     monkeypatch.setattr(ctypes, "get_errno", lambda: errno.EIO)
 
     with pytest.raises(OSError, match=r".*") as exc_info:
-        fs_info.fstatfs(DummyFd(11))
+        fs_info.fstatfs(cast("IOBase", DummyFd(11)))
 
     assert exc_info.value.errno == errno.EIO
 
@@ -130,8 +137,8 @@ def test_fstatfs_raises_oserror_on_native_error(
 def test_filesystem_routes_to_statfs_for_paths() -> None:
     """filesystem() uses statfs() for path-like input."""
 
-    def fake_statfs(path: str, buf_ref: object) -> int:
-        assert path == "/mnt/share"
+    def fake_statfs(path: bytes, buf_ref: object) -> int:
+        assert path == b"/mnt/share"
         _set_fs_type(buf_ref, FsTypes.filesystems["CIFS_MAGIC_NUMBER"])
         return 0
 
@@ -150,7 +157,20 @@ def test_filesystem_routes_to_fstatfs_for_file_objects() -> None:
 
     fs_info = StubFilesystemInfo(lambda _path, _buf: 0, fake_fstatfs)
 
-    assert fs_info.filesystem(DummyFd(13)) == "SMB2"
+    assert fs_info.filesystem(cast("IOBase", DummyFd(13))) == "SMB2"
+
+
+def test_filesystem_accepts_pathlike_paths() -> None:
+    """filesystem() normalizes PathLike input before calling statfs()."""
+
+    def fake_statfs(path: bytes, buf_ref: object) -> int:
+        assert path == os.fsencode("/mnt/pathlike")
+        _set_fs_type(buf_ref, FsTypes.filesystems["CIFS_MAGIC_NUMBER"])
+        return 0
+
+    fs_info = StubFilesystemInfo(fake_statfs, lambda _fd, _buf: 0)
+
+    assert fs_info.filesystem(Path("/mnt/pathlike")) == "CIFS"
 
 
 def test_filesystem_returns_unknown_for_unmapped_type() -> None:

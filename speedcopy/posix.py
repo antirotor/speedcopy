@@ -10,22 +10,14 @@ import stat
 import sys
 from ctypes import c_int
 from enum import IntFlag
-from fcntl import ioctl
-from typing import Any, BinaryIO, Type, Union
+from fcntl import ioctl  # type: ignore[attr-defined]
+from typing import Any, BinaryIO, Type, Union, cast
 
 from .fstatfs import FilesystemInfo
 
 log = logging.getLogger(__name__)
 
-try:
-    _sendfile = os.sendfile
-except AttributeError:
-    try:
-        import sendfile
-    except ImportError:
-        _sendfile = None
-    else:
-        _sendfile = sendfile.sendfile
+_sendfile = getattr(os, "sendfile", None)
 
 CIFS_MAGIC_NUMBER = 0xFF534D42
 SMB2_MAGIC_NUMBER = 0xFE534D42
@@ -201,11 +193,30 @@ def _copyfile_sendfile(
     return status
 
 
+def _copyfile_fallback(
+        src: Union[str, bytes],
+        dst: Union[str, bytes]) -> None:
+    """Copy a file using sendfile first, then copyfileobj."""
+    with open(src, "rb") as fsrc, open(dst, "wb") as fdst:
+        if not _copyfile_sendfile(fsrc, fdst):
+            shutil.copyfileobj(fsrc, fdst)
+
+
+def _coerce_path(path: Union[str, bytes, os.PathLike]) -> Union[str, bytes]:
+    """Return a filesystem path as str or bytes.
+
+    Returns:
+        str or bytes: Normalized filesystem path.
+
+    """
+    return cast("Union[str, bytes]", os.fspath(path))
+
+
 def copyfile(  # noqa: C901
-        src: Union[str, os.PathLike],
-        dst: Union[str, os.PathLike],
+        src: Union[str, bytes, os.PathLike],
+        dst: Union[str, bytes, os.PathLike],
         *,
-        follow_symlinks: bool = True) -> str:
+        follow_symlinks: bool = True) -> Union[str, bytes]:
     """Copy data from src to dst.
 
     Args:
@@ -223,61 +234,63 @@ def copyfile(  # noqa: C901
         SpecialFileError: If ``src`` or ``dst`` is a named pipe.
 
     """
-    if shutil._samefile(src, dst):  # noqa: SLF001
-        msg = f"{src!r} and {dst!r} are the same file"
+    src_path = _coerce_path(src)
+    dst_path = _coerce_path(dst)
+
+    if shutil._samefile(  # noqa: SLF001  # type: ignore[attr-defined]
+            src_path, dst_path):
+        msg = f"{src_path!r} and {dst_path!r} are the same file"
         raise shutil.SameFileError(msg)
 
-    for fn in [src, dst]:
+    for fn in [src_path, dst_path]:
         try:
             st = os.stat(fn)
         except OSError:  # noqa: PERF203
             # File most likely does not exist
-            log.exception("%s doesn't exists.", fn)
+            log.debug("%s does not exist yet.", fn)
         else:
             if stat.S_ISFIFO(st.st_mode):
-                msg = f"`{fn}` is a named pipe"
+                msg = f"`{fn!r}` is a named pipe"
                 raise shutil.SpecialFileError(msg)
 
-    if not follow_symlinks and os.path.islink(src):
-        log.debug("creating symlink %s -> %s", src, dst)
-        os.symlink(os.readlink(src), dst)
+    if not follow_symlinks and os.path.islink(src_path):
+        log.debug("creating symlink %s -> %s", src_path, dst_path)
+        os.symlink(os.readlink(src_path), dst_path)
     else:
-        fs_src_type = FilesystemInfo().filesystem(src)
-        dst_dir_path = os.path.normpath(os.path.dirname(dst.encode("utf-8")))
-        fs_dst_type = FilesystemInfo().filesystem(dst_dir_path.decode("utf-8"))
-        supported_fs = ["CIFS", "SMB2"]
-        log.debug("Source FS: %s", fs_src_type)
-        log.debug("Destination FS: %s", fs_dst_type)
-        if fs_src_type in supported_fs and fs_dst_type in supported_fs:
-            fsrc = os.open(src, os.O_RDONLY)
-            fdst = os.open(dst, os.O_WRONLY | os.O_CREAT)
+        should_try_ioctl = sys.platform.startswith("linux")
+        if should_try_ioctl:
+            dst_dir_path = os.path.dirname(dst_path)
+            if not dst_dir_path:
+                dst_dir_path = b"." if isinstance(dst_path, bytes) else "."
+            dst_dir_path = os.path.normpath(dst_dir_path)
 
-            CIFS_IOCTL_MAGIC = 0xCF  # noqa: N806
-            CIFS_IOC_COPYCHUNK_FILE = ioctl_write(  # noqa: N806
-                CIFS_IOCTL_MAGIC, 3, c_int)
+            fs_info = FilesystemInfo()
+            fs_src_type = fs_info.filesystem(src_path)
+            fs_dst_type = fs_info.filesystem(dst_dir_path)
+            supported_fs = ["CIFS", "SMB2"]
+            log.debug("Source FS: %s", fs_src_type)
+            log.debug("Destination FS: %s", fs_dst_type)
+            if fs_src_type in supported_fs and fs_dst_type in supported_fs:
+                fsrc = os.open(src_path, os.O_RDONLY)
+                fdst = os.open(dst_path, os.O_WRONLY | os.O_CREAT)
+                try:
+                    CIFS_IOCTL_MAGIC = 0xCF  # noqa: N806
+                    CIFS_IOC_COPYCHUNK_FILE = ioctl_write(  # noqa: N806
+                        CIFS_IOCTL_MAGIC, 3, c_int)
 
-            # try copy file with COW support on Linux. If fails, fallback
-            # to sendfile and if this is not available too, fallback
-            # copyfileobj.
-            ret = ioctl(fdst, CIFS_IOC_COPYCHUNK_FILE, fsrc)
-            os.close(fsrc)
-            os.close(fdst)
-            if ret != 0:
+                    # try copy file with COW support on Linux. If fails,
+                    # fallback to sendfile and if this is not available too,
+                    # fallback to copyfileobj.
+                    ret = ioctl(fdst, CIFS_IOC_COPYCHUNK_FILE, fsrc)
+                finally:
+                    os.close(fsrc)
+                    os.close(fdst)
+
+                if ret == 0:
+                    return dst_path
+
                 log.error("Failed %s", ret)
-                os.close(fsrc)
-                os.close(fdst)
-                # Try to use sendfile if available for performance
-                with open(src, "rb") as fsrc, open(dst, "wb") as fdst:
-                    if not _copyfile_sendfile(fsrc, fdst):
-                        log.error("failed sendfile: %s, %s", src, dst)
-                        # sendfile is not available or failed, fallback
-                        # to copyfileobj
-                        shutil.copyfileobj(fsrc, fdst)
-        else:
-            with open(src, "rb") as fsrc, open(dst, "wb") as fdst:
-                if not _copyfile_sendfile(fsrc, fdst):
-                    # sendfile is not available or failed, fallback
-                    # to copyfileobj
-                    shutil.copyfileobj(fsrc, fdst)
 
-    return dst
+        _copyfile_fallback(src_path, dst_path)
+
+    return dst_path

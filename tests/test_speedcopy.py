@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
@@ -158,6 +159,79 @@ def test_copy_threadpool_multi_thread(
         assert src.read_bytes() == dst.read_bytes()
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX-only backend test")
+def test_posix_copyfile_accepts_pathlike_on_macos_fallback(
+        tmp_path_factory: pytest.TempPathFactory,
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    """POSIX copyfile coerces PathLike inputs and skips ioctl on macOS."""
+    import speedcopy.posix as posix_copyfile
+
+    tmp_path = tmp_path_factory.mktemp(
+        "test_posix_copyfile_accepts_pathlike_on_macos_fallback")
+    src = tmp_path / "source"
+    dst = tmp_path / "destination"
+    payload = os.urandom(32 * 1024)
+    src.write_bytes(payload)
+
+    class FailingFilesystemInfo:
+        """Guard against Linux-only filesystem probing on macOS."""
+
+        def __init__(self) -> None:
+            msg = "FilesystemInfo should not be constructed on macOS"
+            raise AssertionError(msg)
+
+    monkeypatch.setattr(posix_copyfile.sys, "platform", "darwin")
+    monkeypatch.setattr(
+        posix_copyfile,
+        "FilesystemInfo",
+        FailingFilesystemInfo,
+    )
+    monkeypatch.setattr(posix_copyfile, "_copyfile_sendfile", lambda *_: False)
+
+    result = posix_copyfile.copyfile(src, dst)
+
+    assert result == os.fspath(dst)
+    assert dst.read_bytes() == payload
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX-only backend test")
+def test_posix_copyfile_accepts_bytes_paths(
+        tmp_path_factory: pytest.TempPathFactory,
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    """POSIX copyfile handles bytes paths without encode/decode issues."""
+    import speedcopy.posix as posix_copyfile
+
+    tmp_path = tmp_path_factory.mktemp(
+        "test_posix_copyfile_accepts_bytes_paths")
+    src_path = tmp_path / "source"
+    dst_path = tmp_path / "destination"
+    payload = os.urandom(8 * 1024)
+    src_path.write_bytes(payload)
+
+    src = os.fsencode(os.fspath(src_path))
+    dst = os.fsencode(os.fspath(dst_path))
+
+    class FailingFilesystemInfo:
+        """Guard against Linux-only filesystem probing on macOS."""
+
+        def __init__(self) -> None:
+            msg = "FilesystemInfo should not be constructed on macOS"
+            raise AssertionError(msg)
+
+    monkeypatch.setattr(posix_copyfile.sys, "platform", "darwin")
+    monkeypatch.setattr(
+        posix_copyfile,
+        "FilesystemInfo",
+        FailingFilesystemInfo,
+    )
+    monkeypatch.setattr(posix_copyfile, "_copyfile_sendfile", lambda *_: False)
+
+    result = posix_copyfile.copyfile(src, dst)
+
+    assert result == dst
+    assert dst_path.read_bytes() == payload
+
+
 def test_errors(tmp_path_factory: pytest.TempPathFactory) -> None:
     """Exception IOError should be raised if file doesn't exist.
 
@@ -184,4 +258,4 @@ def test_unpatch() -> None:
     """Test if copyfile is restored."""
     speedcopy.patch_copyfile()
     speedcopy.unpatch_copyfile()
-    assert shutil.copyfile == shutil._orig_copyfile  # noqa: SLF001
+    assert shutil.copyfile == shutil.__dict__["_orig_copyfile"]
