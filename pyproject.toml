@@ -101,3 +101,4 @@ line-ending = "auto"
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*.py" = ["S101", "PLR2004"]  # allow asserts and magical values
+"benchmark.py" = ["T201"]  # allow asserts and magical values

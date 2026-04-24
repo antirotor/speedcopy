@@ -7,14 +7,13 @@ import shutil
 import pytest
 
 import speedcopy
-from typing import Callable
 
 _FILE_SIZE = 5 * 1024 * 1024
 
 
-
 @pytest.mark.skip(reason="pyxattr module is not by default installed")
-def test_copy_extended_attributes(tmp_path_factory: pytest.TempPathFactory) -> None:
+def test_copy_extended_attributes(
+        tmp_path_factory: pytest.TempPathFactory) -> None:
     """Test copy with extended attributes.
 
     This tries to copy file with extended attributes. It requires pyxattr
@@ -23,7 +22,7 @@ def test_copy_extended_attributes(tmp_path_factory: pytest.TempPathFactory) -> N
     Tests for issue #24.
 
     Args:
-        tmp_path: pytest fixture for temporary directory.
+        tmp_path_factory: pytest fixture for temporary directory.
 
     """
     import xattr
@@ -44,13 +43,14 @@ def test_copy_extended_attributes(tmp_path_factory: pytest.TempPathFactory) -> N
     assert xattr.getxattr(dst.as_posix(), "user.comment") == "xattr test"
 
 
-def test_copy_alternate_data_streams(tmp_path_factory: pytest.TempPathFactory) -> None:
+def test_copy_alternate_data_streams(
+        tmp_path_factory: pytest.TempPathFactory) -> None:
     """Test copy with alternate data streams.
 
     Speedcopy should ignore alternate data streams.
 
     Args:
-        tmp_path: pytest fixture for temporary directory.
+        tmp_path_factory: pytest fixture for temporary directory.
 
 
     """
@@ -74,8 +74,13 @@ def test_copy_alternate_data_streams(tmp_path_factory: pytest.TempPathFactory) -
     assert not os.path.isfile(dst.as_posix() + ":ads")
 
 
-def test_copy_abs(tmp_path_factory: pytest.TempPathFactory):
-    """Test copy from absolute paths."""
+def test_copy_abs(tmp_path_factory: pytest.TempPathFactory) -> None:
+    """Test copy from absolute paths.
+
+    Args:
+        tmp_path_factory: pytest fixture for temporary directory.
+
+    """
     tmp_path = tmp_path_factory.mktemp("test_copy_abs")
     src = tmp_path / "source"
     dst = tmp_path / "destination"
@@ -88,8 +93,13 @@ def test_copy_abs(tmp_path_factory: pytest.TempPathFactory):
     assert os.path.isfile(dst)
 
 
-def test_copy_rel(tmp_path_factory: pytest.TempPathFactory):
-    """Test copy from relative paths."""
+def test_copy_rel(tmp_path_factory: pytest.TempPathFactory) -> None:
+    """Test copy from relative paths.
+
+    Args:
+        tmp_path_factory: pytest fixture for temporary directory.
+
+    """
     cwd = os.getcwd()
     tmp_path = tmp_path_factory.mktemp("test_copy_rel")
     os.chdir(str(tmp_path))
@@ -108,8 +118,13 @@ def test_copy_rel(tmp_path_factory: pytest.TempPathFactory):
         os.chdir(cwd)
 
 
-def test_errors(tmp_path_factory: pytest.TempPathFactory):
-    """Exception IOError should be raised if file doesn't exist."""
+def test_errors(tmp_path_factory: pytest.TempPathFactory) -> None:
+    """Exception IOError should be raised if file doesn't exist.
+
+    Args:
+        tmp_path_factory: pytest fixture for temporary directory.
+
+    """
     tmp_path = tmp_path_factory.mktemp("test_errors")
     src = tmp_path / "source"
     dst = tmp_path / "destination"
@@ -118,15 +133,15 @@ def test_errors(tmp_path_factory: pytest.TempPathFactory):
         shutil.copyfile(src, dst)
 
 
-def test_patch():
+def test_patch() -> None:
     """Test if copyfile is patched."""
     speedcopy.patch_copyfile()
     assert shutil.copyfile == speedcopy.copyfile
     assert hasattr(shutil, "_orig_copyfile")
 
 
-def test_unpatch():
+def test_unpatch() -> None:
     """Test if copyfile is restored."""
     speedcopy.patch_copyfile()
     speedcopy.unpatch_copyfile()
-    assert shutil.copyfile == shutil._orig_copyfile
+    assert shutil.copyfile == shutil._orig_copyfile  # noqa: SLF001

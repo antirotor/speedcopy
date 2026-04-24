@@ -100,6 +100,8 @@ class statfs_t(ctypes.Structure):  # noqa: N801
         f_ffree:   free file nodes in fs
         f_fsid:    file system id
         f_namelen: maximum length of filenames
+        padding:   padding
+
     """
 
     _fields_ = [

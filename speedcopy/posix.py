@@ -11,7 +11,7 @@ import sys
 from ctypes import c_int
 from enum import IntFlag
 from fcntl import ioctl
-from typing import TYPE_CHECKING, Any, BinaryIO, Type, Union
+from typing import Any, BinaryIO, Type, Union
 
 from .fstatfs import FilesystemInfo
 
@@ -52,6 +52,7 @@ IOC_READ = 2
 
 class IoctlDirection(IntFlag):
     """Direction of ioctl command."""
+
     NONE = 0
     WRITE = 1
     READ = 2
