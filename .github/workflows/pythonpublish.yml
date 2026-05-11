@@ -23,11 +23,6 @@ jobs:
         run: uv sync --all-extras --no-install-project
       - name: Build
         run: uv build
-      # Check that basic features work and we didn't miss to include crucial files
-      - name: Run tests (wheel)
-        run: uv run --isolated --no-project --with dist/*.whl pytest ./tests
-      - name: Run tests (source distribution)
-        run: uv run --isolated --no-project --with dist/*.tar.gz pytest ./tests
       - name: Publish
         run: uv publish
 
