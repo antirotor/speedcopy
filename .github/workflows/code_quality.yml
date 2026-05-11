@@ -36,6 +36,6 @@ jobs:
         with:
           enable-cache: true
       - name: Install Environment
-        run: uv sync --group dev --no-install-project
+        run: uv sync --all-extras --no-install-project
       - name: Run tests
         run: uv run pytest
