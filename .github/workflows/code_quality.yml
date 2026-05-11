@@ -20,8 +20,8 @@ jobs:
   linting:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/ruff-action@v3
+      - uses: actions/checkout@v6
+      - uses: astral-sh/ruff-action@v4
         with:
           version-file: "pyproject.toml"
   test:
@@ -31,8 +31,11 @@ jobs:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v8
+        with:
+          enable-cache: true
       - name: Install Environment
-        run: uv sync --all-extras
-      - run: uv run pytest
+        run: uv sync --group dev --no-install-project
+      - name: Run tests
+        run: uv run pytest
