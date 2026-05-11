@@ -1,6 +1,7 @@
 # speedcopy
 
-[![Build Status](https://travis-ci.com/antirotor/speedcopy.svg?branch=master)](https://travis-ci.com/antirotor/speedcopy)
+[![CodeQL](https://github.com/antirotor/speedcopy/actions/workflows/github-code-scanning/codeql/badge.svg?branch=master)](https://github.com/antirotor/speedcopy/actions/workflows/github-code-scanning/codeql)
+[![📇 Code Linting and ⚗️ Tests](https://github.com/antirotor/speedcopy/actions/workflows/code_quality.yml/badge.svg)](https://github.com/antirotor/speedcopy/actions/workflows/code_quality.yml)
 [![PyPI version](https://badge.fury.io/py/speedcopy.svg)](https://badge.fury.io/py/speedcopy)
 
 Patched python shutil.copyfile using native call `CopyFile2` on windows to accelerate
