@@ -1,25 +1,38 @@
-name: Qodana
+name: 📇 Code Linting and ⚗️ Tests
+
 on:
-  workflow_dispatch:
-  pull_request:
   push:
-    branches:
-      - main
-      - 'releases/*'
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop ]
+
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
 
 jobs:
-  qodana:
+  linting:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-      checks: write
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - uses: astral-sh/ruff-action@v3
         with:
-          ref: ${{ github.event.pull_request.head.sha }}  # to check out the actual pull request commit, not the merge commit
-          fetch-depth: 0  # a full history is required for pull request analysis
-      - name: 'Qodana Scan'
-        uses: JetBrains/qodana-action@v2023.3
-        env:
-          QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
+          version-file: "pyproject.toml"
+  test:
+    name: Run tests
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - name: Install Environment
+        run: uv sync --all-extras
+      - run: uv run pytest
