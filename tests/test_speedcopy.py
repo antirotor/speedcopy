@@ -1,28 +1,22 @@
-# -*- coding: utf-8 -*-
 """Tests for speedcopy."""
+from __future__ import annotations
 
-import shutil
-import speedcopy
 import os
+import shutil
+import sys
+import threading
+from concurrent.futures import ThreadPoolExecutor
+
 import pytest
 
+import speedcopy
 
-speedcopy.SPEEDCOPY_DEBUG = True
 _FILE_SIZE = 5 * 1024 * 1024
 
 
-def setup_function(function):
-    """Test setup."""
-    speedcopy.patch_copyfile()
-
-
-def teadown_function(function):
-    """Test teardown."""
-    speedcopy.unpatch_copyfile()
-
-
 @pytest.mark.skip(reason="pyxattr module is not by default installed")
-def test_copy_extended_attributes(tmpdir):
+def test_copy_extended_attributes(
+        tmp_path_factory: pytest.TempPathFactory) -> None:
     """Test copy with extended attributes.
 
     This tries to copy file with extended attributes. It requires pyxattr
@@ -30,64 +24,88 @@ def test_copy_extended_attributes(tmpdir):
 
     Tests for issue #24.
 
+    Args:
+        tmp_path_factory: pytest fixture for temporary directory.
+
     """
-    import xattr  # noqa: F401
+    import xattr
 
-    src = tmpdir.join("source")
-    dst = tmpdir.join("destination")
+    tmp_path = tmp_path_factory.mktemp("test_copy_extended_attributes")
 
-    with open(str(src), "wb") as f:
+    src = tmp_path / "source"
+    dst = tmp_path / "destination"
+
+    with open(src, "wb") as f:
         f.write(os.urandom(_FILE_SIZE))
     f.close()
-    xattr.setxattr(str(src), "user.comment", "xattr test")
+    xattr.setxattr(src.as_posix(), "user.comment", "xattr test")
 
-    shutil.copyfile(str(src), str(dst))
+    shutil.copyfile(src, dst)
 
     assert os.path.isfile(str(dst))
-    assert xattr.getxattr(str(dst), "user.comment") == "xattr test"
+    assert xattr.getxattr(dst.as_posix(), "user.comment") == "xattr test"
 
 
-def test_copy_alternate_data_streams(tmpdir):
+def test_copy_alternate_data_streams(
+        tmp_path_factory: pytest.TempPathFactory) -> None:
     """Test copy with alternate data streams.
 
     Speedcopy should ignore alternate data streams.
 
+    Args:
+        tmp_path_factory: pytest fixture for temporary directory.
+
+
     """
-    src = tmpdir.join("source")
-    dst = tmpdir.join("destination")
+    tmp_path = tmp_path_factory.mktemp("test_copy_alternate_data_streams")
 
-    with open(str(src), "wb") as f:
+    src = tmp_path / "source"
+    dst = tmp_path / "destination"
+
+    with open(src, "wb") as f:
         f.write(os.urandom(_FILE_SIZE))
     f.close()
-    with open(str(src) + ":ads", "wb") as f:
+    with open(src.as_posix() + ":ads", "wb") as f:
         f.write(os.urandom(_FILE_SIZE))
     f.close()
 
-    shutil.copyfile(str(src), str(dst))
+    shutil.copyfile(src, dst)
 
     # alternate data stream should be ignored, but the file it
     # is attached to should be copied
-    assert os.path.isfile(str(dst))
-    assert not os.path.isfile(str(dst) + ":ads")
+    assert dst.exists()
+    assert not os.path.isfile(dst.as_posix() + ":ads")
 
 
-def test_copy_abs(tmpdir):
-    """Test copy from absolute paths."""
-    src = tmpdir.join("source")
-    dst = tmpdir.join("destination")
-    with open(str(src), "wb") as f:
+def test_copy_abs(tmp_path_factory: pytest.TempPathFactory) -> None:
+    """Test copy from absolute paths.
+
+    Args:
+        tmp_path_factory: pytest fixture for temporary directory.
+
+    """
+    tmp_path = tmp_path_factory.mktemp("test_copy_abs")
+    src = tmp_path / "source"
+    dst = tmp_path / "destination"
+    with open(src, "wb") as f:
         f.write(os.urandom(_FILE_SIZE))
     f.close()
 
-    shutil.copyfile(str(src), str(dst))
+    shutil.copyfile(src, dst)
 
-    assert os.path.isfile(str(dst))
+    assert os.path.isfile(dst)
 
 
-def test_copy_rel(tmpdir):
-    """Test copy from relative paths."""
+def test_copy_rel(tmp_path_factory: pytest.TempPathFactory) -> None:
+    """Test copy from relative paths.
+
+    Args:
+        tmp_path_factory: pytest fixture for temporary directory.
+
+    """
     cwd = os.getcwd()
-    os.chdir(str(tmpdir))
+    tmp_path = tmp_path_factory.mktemp("test_copy_rel")
+    os.chdir(str(tmp_path))
 
     try:
         src = "source"
@@ -103,21 +121,196 @@ def test_copy_rel(tmpdir):
         os.chdir(cwd)
 
 
-def test_errors(tmpdir):
-    """Exception IOError should be raised if file doesn't exist."""
-    src = tmpdir.join("source")
-    dst = tmpdir.join("destination")
+def test_copy_threadpool_multi_thread(
+        tmp_path_factory: pytest.TempPathFactory) -> None:
+    """Test concurrent copy operations using a thread pool."""
+    tmp_path = tmp_path_factory.mktemp("test_copy_threadpool_multi_thread")
+    pairs = []
+    for idx in range(8):
+        src = tmp_path / f"source_{idx}"
+        dst = tmp_path / f"destination_{idx}"
+        payload = bytes([idx]) * (64 * 1024)
+        src.write_bytes(payload)
+        pairs.append((src, dst))
+
+    thread_ids: set[int] = set()
+    lock = threading.Lock()
+
+    def copy_one(src_dst: tuple[os.PathLike[str], os.PathLike[str]]) -> None:
+        src, dst = src_dst
+        with lock:
+            thread_ids.add(threading.get_ident())
+        shutil.copyfile(src, dst)
+
+    was_patched = shutil.copyfile == speedcopy.copyfile
+    if not was_patched:
+        speedcopy.patch_copyfile()
+
+    try:
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            list(executor.map(copy_one, pairs))
+    finally:
+        if not was_patched:
+            speedcopy.unpatch_copyfile()
+
+    assert len(thread_ids) >= 2
+    for src, dst in pairs:
+        assert dst.exists()
+        assert src.read_bytes() == dst.read_bytes()
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX-only backend test")
+def test_posix_copyfile_accepts_pathlike_on_macos_fallback(
+        tmp_path_factory: pytest.TempPathFactory,
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    """POSIX copyfile coerces PathLike inputs and skips ioctl on macOS."""
+    import speedcopy.posix as posix_copyfile
+
+    tmp_path = tmp_path_factory.mktemp(
+        "test_posix_copyfile_accepts_pathlike_on_macos_fallback")
+    src = tmp_path / "source"
+    dst = tmp_path / "destination"
+    payload = os.urandom(32 * 1024)
+    src.write_bytes(payload)
+
+    class FailingFilesystemInfo:
+        """Guard against Linux-only filesystem probing on macOS."""
+
+        def __init__(self) -> None:
+            msg = "FilesystemInfo should not be constructed on macOS"
+            raise AssertionError(msg)
+
+    monkeypatch.setattr(posix_copyfile.sys, "platform", "darwin")
+    monkeypatch.setattr(
+        posix_copyfile,
+        "FilesystemInfo",
+        FailingFilesystemInfo,
+    )
+    monkeypatch.setattr(posix_copyfile, "_copyfile_sendfile", lambda *_: False)
+
+    result = posix_copyfile.copyfile(src, dst)
+
+    assert result == os.fspath(dst)
+    assert dst.read_bytes() == payload
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX-only backend test")
+def test_posix_copyfile_accepts_bytes_paths(
+        tmp_path_factory: pytest.TempPathFactory,
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    """POSIX copyfile handles bytes paths without encode/decode issues."""
+    import speedcopy.posix as posix_copyfile
+
+    tmp_path = tmp_path_factory.mktemp(
+        "test_posix_copyfile_accepts_bytes_paths")
+    src_path = tmp_path / "source"
+    dst_path = tmp_path / "destination"
+    payload = os.urandom(8 * 1024)
+    src_path.write_bytes(payload)
+
+    src = os.fsencode(os.fspath(src_path))
+    dst = os.fsencode(os.fspath(dst_path))
+
+    class FailingFilesystemInfo:
+        """Guard against Linux-only filesystem probing on macOS."""
+
+        def __init__(self) -> None:
+            msg = "FilesystemInfo should not be constructed on macOS"
+            raise AssertionError(msg)
+
+    monkeypatch.setattr(posix_copyfile.sys, "platform", "darwin")
+    monkeypatch.setattr(
+        posix_copyfile,
+        "FilesystemInfo",
+        FailingFilesystemInfo,
+    )
+    monkeypatch.setattr(posix_copyfile, "_copyfile_sendfile", lambda *_: False)
+
+    result = posix_copyfile.copyfile(src, dst)
+
+    assert result == dst
+    assert dst_path.read_bytes() == payload
+
+
+def test_errors(tmp_path_factory: pytest.TempPathFactory) -> None:
+    """Exception IOError should be raised if file doesn't exist.
+
+    Args:
+        tmp_path_factory: pytest fixture for temporary directory.
+
+    """
+    tmp_path = tmp_path_factory.mktemp("test_errors")
+    src = tmp_path / "source"
+    dst = tmp_path / "destination"
 
     with pytest.raises((IOError, OSError)):
-        shutil.copyfile(str(src), str(dst))
+        shutil.copyfile(src, dst)
 
 
-def test_patch():
+def test_patch() -> None:
     """Test if copyfile is patched."""
+    speedcopy.patch_copyfile()
     assert shutil.copyfile == speedcopy.copyfile
+    assert hasattr(shutil, "_orig_copyfile")
 
 
-def test_unpatch():
+def test_unpatch() -> None:
     """Test if copyfile is restored."""
+    speedcopy.patch_copyfile()
     speedcopy.unpatch_copyfile()
-    assert shutil.copyfile == shutil._orig_copyfile
+    assert shutil.copyfile == shutil.__dict__["_orig_copyfile"]
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX-only backend test")
+def test_posix_ioctl_type_check_accepts_c_int() -> None:
+    """ioctl_type_check accepts normal ctype argument sizes."""
+    import speedcopy.posix as posix_copyfile
+
+    assert posix_copyfile.ioctl_type_check(posix_copyfile.c_int) == 4
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX-only backend test")
+def test_posix_ioctl_command_validates_bounds() -> None:
+    """ioctl_command accepts in-range fields and rejects out-of-range ones."""
+    import speedcopy.posix as posix_copyfile
+
+    cmd = posix_copyfile.ioctl_command(
+        posix_copyfile.IoctlDirection.WRITE,
+        0xCF,
+        3,
+        posix_copyfile.ioctl_type_check(posix_copyfile.c_int),
+    )
+
+    assert isinstance(cmd, int)
+
+    with pytest.raises(ValueError, match="invalid direction"):
+        posix_copyfile.ioctl_command(
+            4,
+            0xCF,
+            3,
+            4,
+        )
+
+    with pytest.raises(ValueError, match="invalid type"):
+        posix_copyfile.ioctl_command(
+            posix_copyfile.IoctlDirection.WRITE,
+            256,
+            3,
+            4,
+        )
+
+    with pytest.raises(ValueError, match="invalid nr"):
+        posix_copyfile.ioctl_command(
+            posix_copyfile.IoctlDirection.WRITE,
+            0xCF,
+            256,
+            4,
+        )
+
+    with pytest.raises(ValueError, match="invalid size"):
+        posix_copyfile.ioctl_command(
+            posix_copyfile.IoctlDirection.WRITE,
+            0xCF,
+            3,
+            posix_copyfile._IOC_SIZEMASK + 1,  # noqa: SLF001
+        )
