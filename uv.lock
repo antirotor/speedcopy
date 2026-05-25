@@ -480,6 +480,9 @@ name = "speedcopy"
 version = "2.2.0"
 source = { editable = "." }
 dependencies = [
+    { name = "pytest", version = "7.4.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.8'" },
+    { name = "pytest", version = "8.3.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.8.*'" },
+    { name = "pytest", version = "8.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
     { name = "typing-extensions", version = "4.7.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.8'" },
     { name = "typing-extensions", version = "4.13.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.8.*'" },
     { name = "typing-extensions", version = "4.15.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
@@ -502,6 +505,7 @@ dev = [
 requires-dist = [
     { name = "codespell", marker = "extra == 'dev'" },
     { name = "mypy", marker = "extra == 'dev'" },
+    { name = "pytest", specifier = ">=7.4.4" },
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "~=0.15" },
     { name = "typing-extensions" },
