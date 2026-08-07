@@ -27,10 +27,10 @@ else:
 def patch_copyfile() -> None:
     """Monkey patch shutil.copyfile()."""
     if shutil.copyfile != copyfile:
-        shutil._orig_copyfile = shutil.copyfile  # noqa: SLF001
+        shutil._orig_copyfile = shutil.copyfile  # ruff: ignore[private-member-access]
         shutil.copyfile = copyfile
 
 
 def unpatch_copyfile() -> None:
     """Restore original function."""
-    shutil.copyfile = shutil._orig_copyfile  # noqa: SLF001
+    shutil.copyfile = shutil._orig_copyfile  # ruff: ignore[private-member-access]

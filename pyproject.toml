@@ -35,7 +35,7 @@ repository = "https://github.com/antirotor/speedcopy"
 
 [project.optional-dependencies]
 dev = [
-    "ruff ~= 0.15",
+    "ruff ~= 0.16",
     "pytest",
     "codespell",
     "mypy"
@@ -59,23 +59,23 @@ preview = true
 
 ignore = [
     "PTH",
-    "ANN204",
-    "COM812",
-    "S603",
-    "ERA001",
-    "TRY003",
-    "UP006",   # support for older python version (type vs. Type)
-    "UP007",   # ..^
-    "UP035",   # ..
-    "UP045",   # UP045 Use `X | None` for type annotations
-    "ARG002",
-    "INP001",  # add `__init__.py` to namespaced package
-    "S404",    # subprocess module is possibly insecure
-    "PLC0415", # import must be on top of the file
-    "CPY001",  # missing copyright header
-    "RUF067",  # code in __init__.py__
-    "D203",
-    "D213",
+    "missing-return-type-special-method",
+    "missing-trailing-comma",
+    "subprocess-without-shell-equals-true",
+    "commented-out-code",
+    "raise-vanilla-args",
+    "non-pep585-annotation",   # support for older python version (type vs. Type)
+    "non-pep604-annotation-union",   # ..^
+    "deprecated-import",   # ..
+    "non-pep604-annotation-optional",   # UP045 Use `X | None` for type annotations
+    "unused-method-argument",
+    "implicit-namespace-package",  # add `__init__.py` to namespaced package
+    "suspicious-subprocess-import",    # subprocess module is possibly insecure
+    "import-outside-top-level", # import must be on top of the file
+    "missing-copyright-notice",  # missing copyright header
+    "non-empty-init-module",  # code in __init__.py__
+    "incorrect-blank-line-before-class",
+    "multi-line-summary-second-line",
 ]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
@@ -100,5 +100,5 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*.py" = ["S101", "PLR2004"]  # allow asserts and magical values
-"benchmark.py" = ["T201"]  # allow asserts and magical values
+"tests/*.py" = ["assert", "magic-value-comparison"]  # allow asserts and magical values
+"benchmark.py" = ["print"]  # allow asserts and magical values
