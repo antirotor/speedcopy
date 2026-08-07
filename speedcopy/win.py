@@ -46,7 +46,7 @@ if is_copyfile2:
     # Skip alternate streams in CopyFile2
     from ctypes import wintypes
 
-    class COPYFILE2_EXTENDED_PARAMETERS(ctypes.Structure):  # noqa: N801
+    class COPYFILE2_EXTENDED_PARAMETERS(ctypes.Structure):  # ruff: ignore[invalid-class-name]
         """Structure to hold extended parameters for CopyFile2.
 
         Example::
@@ -85,7 +85,7 @@ else:
     PARAMS = None
 
 
-def copyfile(  # noqa: C901, PLR0912
+def copyfile(  # ruff: ignore[complex-structure, too-many-branches]
         src: Union[str, os.PathLike],
         dst: Union[str, os.PathLike],
         *,
@@ -112,11 +112,11 @@ def copyfile(  # noqa: C901, PLR0912
         OSError: if file no exist
         IOError: if copying failed on Windows API level.
 
-    """  # noqa: DOC502
-    if shutil._samefile(src, dst):  # noqa: SLF001
+    """  # ruff: ignore[docstring-extraneous-exception]
+    if shutil._samefile(src, dst):  # ruff: ignore[private-member-access]
         # Get shutil.SameFileError if available (Python 3.4+)
         # else fall back to original behavior using shutil.Error
-        SameFileError = getattr(  # noqa: N806
+        SameFileError = getattr(  # ruff: ignore[non-lowercase-variable-in-function]
             shutil, "SameFileError", shutil.Error)
         msg = f"{src!r} and {dst!r} are the same file"
         raise SameFileError(msg)
@@ -124,7 +124,7 @@ def copyfile(  # noqa: C901, PLR0912
     for fn in [src, dst]:
         try:
             st = os.stat(fn)
-        except OSError:  # noqa: PERF203
+        except OSError:  # ruff: ignore[try-except-in-loop]
             # File most likely does not exist
             pass
         else:

@@ -273,7 +273,7 @@ def test_windows_copyfile2_raises_for_failed_hresult() -> None:
         pytest.skip("CopyFile2 is unavailable")
 
     with pytest.raises(OSError, match="HRESULT 0XFFFFFFFF"):
-        win_copyfile._check_hresult(-1, object(), object())  # noqa: SLF001
+        win_copyfile._check_hresult(-1, object(), object())  # ruff: ignore[private-member-access]
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="POSIX-only backend test")
@@ -327,5 +327,5 @@ def test_posix_ioctl_command_validates_bounds() -> None:
             posix_copyfile.IoctlDirection.WRITE,
             0xCF,
             3,
-            posix_copyfile._IOC_SIZEMASK + 1,  # noqa: SLF001
+            posix_copyfile._IOC_SIZEMASK + 1,  # ruff: ignore[private-member-access]
         )

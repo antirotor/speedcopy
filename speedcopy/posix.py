@@ -50,7 +50,7 @@ class IoctlDirection(IntFlag):
     READ = IOC_READ
 
 
-def ioctl_type_check(_type: Any) -> int:  # noqa: ANN401
+def ioctl_type_check(_type: Any) -> int:  # ruff: ignore[any-type]
     """Return the size of given ioctl type.
 
     Returns the size of given type, and check its suitability for use in an
@@ -212,7 +212,7 @@ def _coerce_path(path: Union[str, bytes, os.PathLike]) -> Union[str, bytes]:
     return cast("Union[str, bytes]", os.fspath(path))
 
 
-def copyfile(  # noqa: C901
+def copyfile(  # ruff: ignore[complex-structure]
         src: Union[str, bytes, os.PathLike],
         dst: Union[str, bytes, os.PathLike],
         *,
@@ -237,7 +237,7 @@ def copyfile(  # noqa: C901
     src_path = _coerce_path(src)
     dst_path = _coerce_path(dst)
 
-    if shutil._samefile(  # noqa: SLF001  # type: ignore[attr-defined]
+    if shutil._samefile(  # ruff: ignore[private-member-access]  # type: ignore[attr-defined]
             src_path, dst_path):
         msg = f"{src_path!r} and {dst_path!r} are the same file"
         raise shutil.SameFileError(msg)
@@ -245,7 +245,7 @@ def copyfile(  # noqa: C901
     for fn in [src_path, dst_path]:
         try:
             st = os.stat(fn)
-        except OSError:  # noqa: PERF203
+        except OSError:  # ruff: ignore[try-except-in-loop]
             # File most likely does not exist
             log.debug("%s does not exist yet.", fn)
         else:
@@ -274,8 +274,8 @@ def copyfile(  # noqa: C901
                 fsrc = os.open(src_path, os.O_RDONLY)
                 fdst = os.open(dst_path, os.O_WRONLY | os.O_CREAT)
                 try:
-                    CIFS_IOCTL_MAGIC = 0xCF  # noqa: N806
-                    CIFS_IOC_COPYCHUNK_FILE = ioctl_write(  # noqa: N806
+                    CIFS_IOCTL_MAGIC = 0xCF  # ruff: ignore[non-lowercase-variable-in-function]
+                    CIFS_IOC_COPYCHUNK_FILE = ioctl_write(  # ruff: ignore[non-lowercase-variable-in-function]
                         CIFS_IOCTL_MAGIC, 3, c_int)
 
                     # try copy file with COW support on Linux. If fails,
