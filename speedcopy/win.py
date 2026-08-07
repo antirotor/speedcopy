@@ -39,7 +39,7 @@ def _check_hresult(result: int, _func: object, _args: object) -> int:
         hresult = result & 0xFFFFFFFF
         func_name = getattr(_func, "__name__", "Windows API call")
         msg = f"{func_name} failed with HRESULT {hresult:#010X}"
-        raise OSError(0, msg, None, hresult)
+        raise OSError(msg)
     return result
 
 

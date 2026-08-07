@@ -272,8 +272,10 @@ def test_windows_copyfile2_raises_for_failed_hresult() -> None:
     if not win_copyfile.is_copyfile2:
         pytest.skip("CopyFile2 is unavailable")
 
-    with pytest.raises(OSError, match="HRESULT 0XFFFFFFFF"):
+    with pytest.raises(OSError, match="HRESULT 0XFFFFFFFF") as exc_info:
         win_copyfile._check_hresult(-1, object(), object())  # ruff: ignore[private-member-access]
+
+    assert exc_info.value.winerror is None
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="POSIX-only backend test")
