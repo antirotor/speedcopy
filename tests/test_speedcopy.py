@@ -261,6 +261,21 @@ def test_unpatch() -> None:
     assert shutil.copyfile == shutil.__dict__["_orig_copyfile"]
 
 
+@pytest.mark.skipif(
+    sys.platform != "win32",
+    reason="Windows-only backend test",
+)
+def test_windows_copyfile2_raises_for_failed_hresult() -> None:
+    """CopyFile2 HRESULT failures are converted to OSError."""
+    import speedcopy.win as win_copyfile
+
+    if not win_copyfile.is_copyfile2:
+        pytest.skip("CopyFile2 is unavailable")
+
+    with pytest.raises(OSError, match="HRESULT 0XFFFFFFFF"):
+        win_copyfile._check_hresult(-1, object(), object())  # noqa: SLF001
+
+
 @pytest.mark.skipif(sys.platform == "win32", reason="POSIX-only backend test")
 def test_posix_ioctl_type_check_accepts_c_int() -> None:
     """ioctl_type_check accepts normal ctype argument sizes."""

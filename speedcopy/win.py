@@ -24,6 +24,24 @@ except AttributeError:
 
 ERROR_IO_PENDING: int = 997
 
+
+def _check_hresult(result: int, _func: object, _args: object) -> int:
+    """Raise when a Windows API call returns a failed HRESULT.
+
+    Returns:
+        int: The successful HRESULT.
+
+    Raises:
+        OSError: If the HRESULT indicates failure.
+
+    """
+    if result < 0:
+        hresult = result & 0xFFFFFFFF
+        msg = f"Windows API call failed with HRESULT {hresult:#010X}"
+        raise OSError(msg)
+    return result
+
+
 if is_copyfile2:
     # Skip alternate streams in CopyFile2
     from ctypes import wintypes
@@ -60,6 +78,7 @@ if is_copyfile2:
         ctypes.c_wchar_p,
         ctypes.POINTER(COPYFILE2_EXTENDED_PARAMETERS),
     )
+    COPYFILE.errcheck = _check_hresult
 
 else:
     COPYFILE.argtypes = (ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_void_p)
