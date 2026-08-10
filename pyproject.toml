@@ -1,6 +1,6 @@
 [project]
 name = "speedcopy"
-version = "2.2.0"
+version = "2.2.1a1"
 description = "Replacement or alternative for python copyfile() utilizing server side copy on network shares for faster copying."
 authors = [
     {name = "Ondrej Samohel", email = "annatar@annatar.net"}
