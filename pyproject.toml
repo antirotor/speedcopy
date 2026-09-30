@@ -9,16 +9,15 @@ authors = [
 license = {file = "LICENSE"}
 readme = "README.md"
 keywords = ["copy", "files", "filesystem", "network", "smb", "samba", "speed"]
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Operating System :: OS Independent",
     "Topic :: Software Development :: Libraries",
     "Topic :: System :: Filesystems",
@@ -44,7 +43,7 @@ dev = [
 ]
 
 [build-system]
-requires = ["uv_build>=0.9.6,<=0.12.19"]
+requires = ["uv_build>=0.9.6,<1"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
@@ -104,3 +103,7 @@ line-ending = "auto"
 [tool.ruff.lint.per-file-ignores]
 "tests/*.py" = ["assert", "magic-value-comparison"]  # allow asserts and magical values
 "benchmark.py" = ["print"]  # allow asserts and magical values
+".github/scripts/*.py" = ["print", "docstring-missing-returns"]  # CI helper scripts
+
+[tool.codespell]
+skip = "uv.lock,.git,.venv,dist"

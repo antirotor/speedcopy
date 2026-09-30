@@ -1,4 +1,5 @@
 """Windows implementation of copyfile."""
+
 from __future__ import annotations
 
 import ctypes
@@ -87,10 +88,11 @@ else:
 
 
 def copyfile(  # ruff: ignore[complex-structure, too-many-branches]
-        src: Union[str, os.PathLike],
-        dst: Union[str, os.PathLike],
-        *,
-        follow_symlinks: bool = True) -> Union[str, os.PathLike]:
+    src: Union[str, os.PathLike],
+    dst: Union[str, os.PathLike],
+    *,
+    follow_symlinks: bool = True,
+) -> Union[str, os.PathLike]:
     """Copy data from src to dst.
 
     It uses Windows native ``CopyFile2`` method to do so, making advantage
@@ -118,7 +120,8 @@ def copyfile(  # ruff: ignore[complex-structure, too-many-branches]
         # Get shutil.SameFileError if available (Python 3.4+)
         # else fall back to original behavior using shutil.Error
         SameFileError = getattr(  # ruff: ignore[non-lowercase-variable-in-function]
-            shutil, "SameFileError", shutil.Error)
+            shutil, "SameFileError", shutil.Error
+        )
         msg = f"{src!r} and {dst!r} are the same file"
         raise SameFileError(msg)
 

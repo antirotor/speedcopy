@@ -45,6 +45,25 @@ speedcopy.copyfile(src, dst)
 
 There is also debug mode enabled by setting `speedcopy.SPEEDCOPY_DEBUG = True`. This will print more information during runtime.
 
+## Releasing
+
+Releases are automated by the **🚀 Release** workflow
+(`.github/workflows/pythonpublish.yml`):
+
+1. Run the workflow from the *Actions* tab on the branch to release from
+   (usually `develop`). Pick the version part to `bump` (`patch`, `minor`,
+   `major`, `none`) and the `stage` (`final`, `alpha`, `beta`, `rc`, or
+   `stable` to drop a pre-release suffix). Examples from `2.2.1a1`:
+   `none` + `stable` gives `2.2.1`, `patch` + `alpha` gives `2.2.2a1`.
+2. The workflow runs lint and tests, bumps the version in `pyproject.toml`,
+   `uv.lock` and `speedcopy/version.py`, commits, and pushes tag `vX.Y.Z`.
+3. Distributions are built, checked, published to TestPyPI and then PyPI
+   (Trusted Publishing with attestations; the `pypi` environment needs
+   approval), and attached to a GitHub Release with generated notes.
+
+Pushing a `v*` tag by hand also runs the pipeline, but the tag must match the
+version in `pyproject.toml`.
+
 ## Benchmark
 You can run benchmark using `benchmark.py` script. It will run copy operations with different file sizes and print the results in a table format.
 

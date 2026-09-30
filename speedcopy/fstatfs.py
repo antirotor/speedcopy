@@ -4,6 +4,7 @@ Taken from:
 https://github.com/mithro/rcfiles
 
 """
+
 from __future__ import annotations
 
 import ctypes
@@ -26,7 +27,7 @@ class FsTypes:
 
     filesystems: ClassVar[dict[str, int]] = {
         "AAFS_SUPER_MAGIC": 0x5A3C69F0,
-        "ADFS_SUPER_MAGIC": 0xadf5,
+        "ADFS_SUPER_MAGIC": 0xADF5,
         "AFS_SUPER_MAGIC": 0x5346414F,
         "AFFS_SUPER_MAGIC": 0xADFF,
         "BEFS_SUPER_MAGIC": 0x42465331,
@@ -35,7 +36,7 @@ class FsTypes:
         "CIFS_SUPER_MAGIC": 0xFF534D42,
         "CODA_SUPER_MAGIC": 0x73757245,
         "COH_SUPER_MAGIC": 0x012FF7B7,
-        "CRAMFS_MAGIC": 0x28cd3d45,
+        "CRAMFS_MAGIC": 0x28CD3D45,
         "DEVFS_SUPER_MAGIC": 0x1373,
         "EFS_SUPER_MAGIC": 0x00414A53,
         "EXT_SUPER_MAGIC": 0x137D,
@@ -45,32 +46,32 @@ class FsTypes:
         "EXFS_SUPER_MAGIC": 0x45584653,
         "HFS_SUPER_MAGIC": 0x4244,
         "HPFS_SUPER_MAGIC": 0xF995E849,
-        "HUGETLBFS_MAGIC": 0x958458f6,
+        "HUGETLBFS_MAGIC": 0x958458F6,
         "ISOFS_SUPER_MAGIC": 0x9660,
-        "JFFS2_SUPER_MAGIC": 0x72b6,
-        "JFS_SUPER_MAGIC": 0x3153464a,
+        "JFFS2_SUPER_MAGIC": 0x72B6,
+        "JFS_SUPER_MAGIC": 0x3153464A,
         "MINIX_SUPER_MAGIC": 0x137F,  # orig. minix
         "MINIX_SUPER_MAGIC2": 0x138F,  # 30 char minix
         "MINIX2_SUPER_MAGIC": 0x2468,  # minix V2
         "MINIX2_SUPER_MAGIC2": 0x2478,  # minix V2, 30 char names
-        "MSDOS_SUPER_MAGIC": 0x4d44,
-        "NCP_SUPER_MAGIC": 0x564c,
+        "MSDOS_SUPER_MAGIC": 0x4D44,
+        "NCP_SUPER_MAGIC": 0x564C,
         "NFS_SUPER_MAGIC": 0x6969,
-        "NTFS_SB_MAGIC": 0x5346544e,
-        "OPENPROM_SUPER_MAGIC": 0x9fa1,
-        "PROC_SUPER_MAGIC": 0x9fa0,
-        "QNX4_SUPER_MAGIC": 0x002f,
+        "NTFS_SB_MAGIC": 0x5346544E,
+        "OPENPROM_SUPER_MAGIC": 0x9FA1,
+        "PROC_SUPER_MAGIC": 0x9FA0,
+        "QNX4_SUPER_MAGIC": 0x002F,
         "REISERFS_SUPER_MAGIC": 0x52654973,
         "ROMFS_MAGIC": 0x7275,
         "SMB_SUPER_MAGIC": 0x517B,
-        "SMB2_SUPER_MAGIC": 0xfe534d42,
+        "SMB2_SUPER_MAGIC": 0xFE534D42,
         "SYSV2_SUPER_MAGIC": 0x012FF7B6,
         "SYSV4_SUPER_MAGIC": 0x012FF7B5,
         "TMPFS_MAGIC": 0x01021994,
         "UDF_SUPER_MAGIC": 0x15013346,
         "UFS_MAGIC": 0x00011954,
-        "USBDEVICE_SUPER_MAGIC": 0x9fa2,
-        "VXFS_SUPER_MAGIC": 0xa501FCF5,
+        "USBDEVICE_SUPER_MAGIC": 0x9FA2,
+        "VXFS_SUPER_MAGIC": 0xA501FCF5,
         "XENIX_SUPER_MAGIC": 0x012FF7B4,
         "XFS_SUPER_MAGIC": 0x58465342,
         "_XIAFS_SUPER_MAGIC": 0x012FD16D,
@@ -155,9 +156,7 @@ class FilesystemInfo:
         err = self._statfs(path_bytes, ctypes.byref(buf))
         if err == -1:
             errno = ctypes.get_errno()
-            msg = (
-                f"{os.strerror(errno)} path: {path_text}"
-            )
+            msg = f"{os.strerror(errno)} path: {path_text}"
             raise OSError(errno, msg)
         return buf
 
