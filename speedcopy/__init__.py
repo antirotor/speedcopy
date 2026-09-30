@@ -1,4 +1,5 @@
 """Speedcopy."""
+
 from .copyfile import (
     SPEEDCOPY_DEBUG,
     copyfile,
@@ -12,5 +13,5 @@ __all__ = [
     "__version__",
     "copyfile",
     "patch_copyfile",
-    "unpatch_copyfile"
+    "unpatch_copyfile",
 ]
