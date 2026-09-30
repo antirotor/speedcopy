@@ -1,4 +1,5 @@
 """POSIX-specific implementation of file copy."""
+
 from __future__ import annotations
 
 import ctypes.util
@@ -75,10 +76,8 @@ def ioctl_type_check(_type: Any) -> int:  # ruff: ignore[any-type]
 
 
 def ioctl_command(
-        direction: IoctlDirection,
-        type_: int,
-        nr: int,
-        size: int) -> int:
+    direction: IoctlDirection, type_: int, nr: int, size: int
+) -> int:
     """Prepare command for ioctl.
 
     Args:
@@ -137,7 +136,8 @@ def ioctl_write(type_: int, nr: int, type_size: Type[c_int]) -> int:
 
     """
     return ioctl_command(
-        IoctlDirection.WRITE, type_, nr, ioctl_type_check(type_size))
+        IoctlDirection.WRITE, type_, nr, ioctl_type_check(type_size)
+    )
 
 
 # errnos sendfile can set if not supported on the system
@@ -149,9 +149,7 @@ _sendfile_err_codes = {
 }
 
 
-def _copyfile_sendfile(
-        file_src: BinaryIO,
-        file_dst: BinaryIO) -> bool:
+def _copyfile_sendfile(file_src: BinaryIO, file_dst: BinaryIO) -> bool:
     """Copy data from fsrc to fdst using sendfile.
 
     Args:
@@ -193,9 +191,7 @@ def _copyfile_sendfile(
     return status
 
 
-def _copyfile_fallback(
-        src: Union[str, bytes],
-        dst: Union[str, bytes]) -> None:
+def _copyfile_fallback(src: Union[str, bytes], dst: Union[str, bytes]) -> None:
     """Copy a file using sendfile first, then copyfileobj."""
     with open(src, "rb") as fsrc, open(dst, "wb") as fdst:
         if not _copyfile_sendfile(fsrc, fdst):
@@ -213,10 +209,11 @@ def _coerce_path(path: Union[str, bytes, os.PathLike]) -> Union[str, bytes]:
 
 
 def copyfile(  # ruff: ignore[complex-structure]
-        src: Union[str, bytes, os.PathLike],
-        dst: Union[str, bytes, os.PathLike],
-        *,
-        follow_symlinks: bool = True) -> Union[str, bytes]:
+    src: Union[str, bytes, os.PathLike],
+    dst: Union[str, bytes, os.PathLike],
+    *,
+    follow_symlinks: bool = True,
+) -> Union[str, bytes]:
     """Copy data from src to dst.
 
     Args:
@@ -238,7 +235,8 @@ def copyfile(  # ruff: ignore[complex-structure]
     dst_path = _coerce_path(dst)
 
     if shutil._samefile(  # ruff: ignore[private-member-access]  # type: ignore[attr-defined]
-            src_path, dst_path):
+        src_path, dst_path
+    ):
         msg = f"{src_path!r} and {dst_path!r} are the same file"
         raise shutil.SameFileError(msg)
 
@@ -276,7 +274,8 @@ def copyfile(  # ruff: ignore[complex-structure]
                 try:
                     CIFS_IOCTL_MAGIC = 0xCF  # ruff: ignore[non-lowercase-variable-in-function]
                     CIFS_IOC_COPYCHUNK_FILE = ioctl_write(  # ruff: ignore[non-lowercase-variable-in-function]
-                        CIFS_IOCTL_MAGIC, 3, c_int)
+                        CIFS_IOCTL_MAGIC, 3, c_int
+                    )
 
                     # try copy file with COW support on Linux. If fails,
                     # fallback to sendfile and if this is not available too,

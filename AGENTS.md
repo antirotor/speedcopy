@@ -45,12 +45,19 @@
 - Ruff is strict (`[tool.ruff.lint] select = ["ALL"]`) with explicit ignores in `pyproject.toml`; run Ruff after edits.
 - Respect `line-length = 79` and existing type-hint style (uses `typing.Union` for old Python compatibility).
 - Use `pyproject.toml` as the source of truth for packaging/version constraints.
+- `speedcopy/version.py` must hold the same version as `pyproject.toml`; never
+  edit one without the other (`python .github/scripts/version_sync.py sync`).
+  CI fails on drift. Releases bump both via the `🚀 Release` workflow.
+- Supported Python is `>=3.9`; CI tests 3.9-3.14.
 - Treat `setup.py` as legacy compatibility metadata; do not add new project logic there unless required.
 
 ## Testing and Validation Expectations
 - Run focused tests in `tests/test_speedcopy.py` for copy and patch/unpatch behavior.
 - For packaging-sensitive changes, mimic release workflow expectations:
-  - wheel and sdist are both test-installed (`.github/workflows/pythonpublish.yml`).
+  - wheel and sdist are built, `twine check`ed and test-installed
+    (`.github/actions/build-dist/action.yml`, used by CI and release).
+- CI also runs `ruff format --check`, `codespell`, `mypy` (informational) and
+  `zizmor` on workflows.
 - If touching platform paths, validate at least the impacted backend and fallback path behavior.
 
 ## Change Boundaries

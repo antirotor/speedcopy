@@ -1,4 +1,5 @@
 """Tests for speedcopy."""
+
 from __future__ import annotations
 
 import os
@@ -16,7 +17,8 @@ _FILE_SIZE = 5 * 1024 * 1024
 
 @pytest.mark.skip(reason="pyxattr module is not by default installed")
 def test_copy_extended_attributes(
-        tmp_path_factory: pytest.TempPathFactory) -> None:
+    tmp_path_factory: pytest.TempPathFactory,
+) -> None:
     """Test copy with extended attributes.
 
     This tries to copy file with extended attributes. It requires pyxattr
@@ -47,7 +49,8 @@ def test_copy_extended_attributes(
 
 
 def test_copy_alternate_data_streams(
-        tmp_path_factory: pytest.TempPathFactory) -> None:
+    tmp_path_factory: pytest.TempPathFactory,
+) -> None:
     """Test copy with alternate data streams.
 
     Speedcopy should ignore alternate data streams.
@@ -122,7 +125,8 @@ def test_copy_rel(tmp_path_factory: pytest.TempPathFactory) -> None:
 
 
 def test_copy_threadpool_multi_thread(
-        tmp_path_factory: pytest.TempPathFactory) -> None:
+    tmp_path_factory: pytest.TempPathFactory,
+) -> None:
     """Test concurrent copy operations using a thread pool."""
     tmp_path = tmp_path_factory.mktemp("test_copy_threadpool_multi_thread")
     pairs = []
@@ -161,13 +165,14 @@ def test_copy_threadpool_multi_thread(
 
 @pytest.mark.skipif(sys.platform == "win32", reason="POSIX-only backend test")
 def test_posix_copyfile_accepts_pathlike_on_macos_fallback(
-        tmp_path_factory: pytest.TempPathFactory,
-        monkeypatch: pytest.MonkeyPatch) -> None:
+    tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """POSIX copyfile coerces PathLike inputs and skips ioctl on macOS."""
     import speedcopy.posix as posix_copyfile
 
     tmp_path = tmp_path_factory.mktemp(
-        "test_posix_copyfile_accepts_pathlike_on_macos_fallback")
+        "test_posix_copyfile_accepts_pathlike_on_macos_fallback"
+    )
     src = tmp_path / "source"
     dst = tmp_path / "destination"
     payload = os.urandom(32 * 1024)
@@ -196,13 +201,14 @@ def test_posix_copyfile_accepts_pathlike_on_macos_fallback(
 
 @pytest.mark.skipif(sys.platform == "win32", reason="POSIX-only backend test")
 def test_posix_copyfile_accepts_bytes_paths(
-        tmp_path_factory: pytest.TempPathFactory,
-        monkeypatch: pytest.MonkeyPatch) -> None:
+    tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """POSIX copyfile handles bytes paths without encode/decode issues."""
     import speedcopy.posix as posix_copyfile
 
     tmp_path = tmp_path_factory.mktemp(
-        "test_posix_copyfile_accepts_bytes_paths")
+        "test_posix_copyfile_accepts_bytes_paths"
+    )
     src_path = tmp_path / "source"
     dst_path = tmp_path / "destination"
     payload = os.urandom(8 * 1024)

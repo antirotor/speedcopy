@@ -1,10 +1,18 @@
-"""Version definition."""
-VERSION_MAJOR = 2
-VERSION_MINOR = 2
-VERSION_PATCH = 0
+"""Version definition.
 
-version_info = (VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH)
-version = "%i.%i.%i" % version_info  # ruff: ignore[printf-string-formatting]
-__version__ = version
+``__version__`` must match ``version`` in ``pyproject.toml``. The release
+workflow keeps them in sync via ``.github/scripts/version_sync.py`` and CI
+fails if they drift apart.
+"""
+
+import re
+
+__version__ = "2.2.1a1"
+
+version = __version__
+version_info = tuple(
+    int(part)
+    for part in re.match(r"(\d+)\.(\d+)\.(\d+)", __version__).groups()  # type: ignore[union-attr]
+)
 
 __all__ = ["__version__", "version", "version_info"]

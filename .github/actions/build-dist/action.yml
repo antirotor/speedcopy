@@ -1,0 +1,62 @@
+name: Build and verify distributions
+description: >-
+  Build sdist and wheel with uv, validate metadata with twine, smoke-test the
+  wheel in a clean virtual environment and upload dist/ as an artifact.
+
+inputs:
+  artifact-name:
+    description: Name of the uploaded artifact.
+    default: dist
+  retention-days:
+    description: Artifact retention in days.
+    default: "7"
+
+runs:
+  using: composite
+  steps:
+    - name: Install uv
+      uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      with:
+        # Never restore caches into artifacts that may get published.
+        enable-cache: false
+
+    - name: Verify version consistency
+      shell: bash
+      run: python3 .github/scripts/version_sync.py check
+
+    - name: Build
+      shell: bash
+      run: uv build --no-cache
+
+    - name: Check distribution metadata
+      shell: bash
+      run: uvx --no-cache twine check --strict dist/*
+
+    - name: Smoke-test wheel and sdist
+      shell: bash
+      run: |
+        expected="$(uv version --short)"
+        for dist in dist/*.whl dist/*.tar.gz; do
+          venv="$RUNNER_TEMP/smoke-$(basename "$dist")"
+          uv venv --no-cache "$venv"
+          uv pip install --no-cache --python "$venv" "$dist"
+          # Run outside the checkout so the installed package is imported.
+          (cd "$RUNNER_TEMP" && "$venv/bin/python" - "$expected" <<'EOF'
+        import sys
+
+        import speedcopy
+
+        assert speedcopy.__version__ == sys.argv[1], speedcopy.__version__
+        assert callable(speedcopy.copyfile)
+        print(speedcopy.__file__, speedcopy.__version__, "imports fine")
+        EOF
+          )
+        done
+
+    - name: Upload distributions
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: dist/
+        if-no-files-found: error
+        retention-days: ${{ inputs.retention-days }}

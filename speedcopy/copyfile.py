@@ -12,6 +12,7 @@ Attributes:
     SPEEDCOPY_DEBUG (bool): set to print debug messages.
 
 """
+
 import shutil
 import sys
 
