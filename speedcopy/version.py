@@ -7,7 +7,7 @@ fails if they drift apart.
 
 import re
 
-__version__ = "2.2.1a1"
+__version__ = "2.2.1"
 
 version = __version__
 version_info = tuple(
