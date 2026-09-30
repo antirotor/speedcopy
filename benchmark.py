@@ -209,13 +209,16 @@ def generate_file(filepath: Path, size_mb: int) -> None:
     """Create a file with random contents and a target size in MB."""
     chunk_bytes = CHUNK_MB * MB_BYTES
     full_chunks, remainder = divmod(size_mb * MB_BYTES, chunk_bytes)
-    with filepath.open("wb") as stream, tqdm(
-        total=size_mb * MB_BYTES,
-        unit="B",
-        unit_scale=True,
-        desc="generating source",
-        leave=False,
-    ) as bar:
+    with (
+        filepath.open("wb") as stream,
+        tqdm(
+            total=size_mb * MB_BYTES,
+            unit="B",
+            unit_scale=True,
+            desc="generating source",
+            leave=False,
+        ) as bar,
+    ):
         for _ in range(full_chunks):
             stream.write(os.urandom(chunk_bytes))
             bar.update(chunk_bytes)
@@ -422,9 +425,7 @@ def main() -> None:
         msg = f"Path is not an existing directory: {share_path}"
         raise NotADirectoryError(msg)
 
-    copies_per_size = (
-        args.repeats * args.workers * args.copies_per_worker * 2
-    )
+    copies_per_size = args.repeats * args.workers * args.copies_per_worker * 2
     total_mb = sum(args.sizes_mb) * copies_per_size
     print(
         f"Each size is copied {copies_per_size}x (repeats x workers x "
