@@ -87,7 +87,7 @@ class FsTypes:
                 self.types[value] = hname
 
 
-class statfs_t(ctypes.Structure):  # noqa: N801
+class statfs_t(ctypes.Structure):  # ruff: ignore[invalid-class-name]
     """Describes the details about a filesystem.
 
     Attributes:

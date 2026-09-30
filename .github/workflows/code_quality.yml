@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: astral-sh/ruff-action@v4
+      - uses: astral-sh/ruff-action@v3
         with:
           version-file: "pyproject.toml"
   test:
@@ -36,6 +36,6 @@ jobs:
         with:
           enable-cache: true
       - name: Install Environment
-        run: uv sync --group dev --no-install-project
+        run: uv sync --all-extras --no-install-project
       - name: Run tests
         run: uv run pytest
