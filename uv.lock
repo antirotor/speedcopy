@@ -504,7 +504,7 @@ wheels = [
 
 [[package]]
 name = "speedcopy"
-version = "2.2.1a1"
+version = "2.2.1"
 source = { editable = "." }
 dependencies = [
     { name = "typing-extensions" },
