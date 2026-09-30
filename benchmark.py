@@ -7,10 +7,10 @@ import contextlib
 import os
 import shutil
 import statistics
-import tempfile
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
+import uuid
+from concurrent.futures import FIRST_EXCEPTION, ThreadPoolExecutor, wait
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Sequence, Tuple
@@ -277,10 +277,13 @@ def run_once(task: CopyTask) -> float:
             desc="bytes",
             leave=False,
         ) as bar:
-            while not all(future.done() for future in futures):
+            pending = set(futures)
+            while pending:
+                _, pending = wait(
+                    pending, timeout=0.05, return_when=FIRST_EXCEPTION
+                )
                 bar.n = min(tracker.snapshot(), total_bytes)
                 bar.refresh()
-                time.sleep(0.05)
             bar.n = total_bytes
             bar.refresh()
         for future in futures:
@@ -439,16 +442,24 @@ def main() -> None:
     )
 
     sizes = args.sizes_mb
-    with tempfile.TemporaryDirectory(dir=str(share_path)) as temp_dir:
-        bench_dir = Path(temp_dir)
+    # Not tempfile.TemporaryDirectory: on Windows, mkdtemp treats
+    # PermissionError as a name collision and retries with new names, which
+    # on a share without create rights looks like a hang instead of failing.
+    bench_dir = share_path / f"speedcopy_bench_{uuid.uuid4().hex[:12]}"
+    print(f"Creating benchmark directory: {bench_dir}")
+    bench_dir.mkdir()
+    try:
         results = [
             benchmark_case(
                 size_mb=size_mb,
                 bench_dir=bench_dir,
                 config=config,
             )
-            for size_mb in tqdm(sizes, desc="sizes", unit="MB")
+            for size_mb in tqdm(sizes, desc="sizes", unit="size")
         ]
+    finally:
+        print(f"Removing benchmark directory: {bench_dir}")
+        shutil.rmtree(bench_dir, ignore_errors=True)
     print_results(results, args.workers)
 
 
