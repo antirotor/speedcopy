@@ -38,7 +38,9 @@ dev = [
     "ruff ~= 0.16",
     "pytest",
     "codespell",
-    "mypy"
+    "mypy",
+    "tqdm",
+    "types-tqdm"
 ]
 
 [build-system]

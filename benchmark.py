@@ -3,15 +3,19 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import os
 import shutil
 import statistics
 import tempfile
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, List, Sequence, Tuple
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
+
+from tqdm import tqdm
 
 import speedcopy
 
@@ -41,6 +45,66 @@ class RunConfig:
     repeats: int
     workers: int
     copies_per_worker: int
+    show_copy_progress: bool = False
+
+
+class CopyProgressTracker:
+    """Track bytes copied across workers while copies are in flight."""
+
+    def __init__(self) -> None:
+        """Initialize an empty tracker with no in-flight copies."""
+        self._lock = threading.Lock()
+        self._completed = 0
+        self._in_flight: Dict[int, Path] = {}
+
+    def start(self, worker_id: int, dst: Path) -> None:
+        """Record the destination a worker started writing to."""
+        with self._lock:
+            self._in_flight[worker_id] = dst
+
+    def finish(self, worker_id: int, size_bytes: int) -> None:
+        """Record that a worker finished copying `size_bytes`."""
+        with self._lock:
+            self._in_flight.pop(worker_id, None)
+            self._completed += size_bytes
+
+    def snapshot(self) -> int:
+        """Return total bytes copied so far, including in-flight files.
+
+        Returns:
+            Completed bytes plus current size of files still being written.
+
+        """
+        with self._lock:
+            total = self._completed
+            in_flight = list(self._in_flight.values())
+        for dst in in_flight:
+            with contextlib.suppress(OSError):
+                total += dst.stat().st_size
+        return total
+
+
+@dataclass
+class CopyTask:
+    """Bundle the parameters needed to run and time one benchmark pass."""
+
+    copy_fn: Callable[[str, str], str]
+    src: str
+    run_dir: Path
+    workers: int
+    copies_per_worker: int
+    size_bytes: int = 0
+    show_progress: bool = False
+
+
+@dataclass
+class BenchContext:
+    """Store per-case parameters shared by both benchmarked methods."""
+
+    src: str
+    bench_dir: Path
+    config: RunConfig
+    size_bytes: int
 
 
 def parse_sizes(value: str) -> Tuple[int, ...]:
@@ -121,6 +185,14 @@ def parse_args() -> argparse.Namespace:
         default=1,
         help="Set >1 to run copies concurrently in multiple threads.",
     )
+    parser.add_argument(
+        "--copy-progress",
+        action="store_true",
+        help=(
+            "Show a bytes-copied progress bar per run (polls destination "
+            "file sizes, adds minor overhead)."
+        ),
+    )
     args = parser.parse_args()
 
     if args.repeats < 1:
@@ -137,57 +209,80 @@ def generate_file(filepath: Path, size_mb: int) -> None:
     """Create a file with random contents and a target size in MB."""
     chunk_bytes = CHUNK_MB * MB_BYTES
     full_chunks, remainder = divmod(size_mb * MB_BYTES, chunk_bytes)
-    with filepath.open("wb") as stream:
+    with filepath.open("wb") as stream, tqdm(
+        total=size_mb * MB_BYTES,
+        unit="B",
+        unit_scale=True,
+        desc="generating source",
+        leave=False,
+    ) as bar:
         for _ in range(full_chunks):
             stream.write(os.urandom(chunk_bytes))
+            bar.update(chunk_bytes)
         if remainder:
             stream.write(os.urandom(remainder))
+            bar.update(remainder)
 
 
 def copy_worker(
-    copy_fn: Callable[[str, str], str],
-    src: str,
-    run_dir: Path,
     worker_id: int,
-    copies_per_worker: int,
+    task: CopyTask,
+    tracker: Optional[CopyProgressTracker] = None,
 ) -> None:
     """Run copy operations for one worker and remove each destination file."""
-    for index in range(copies_per_worker):
-        dst = run_dir / f"w{worker_id:02d}_copy{index:03d}.bin"
-        copy_fn(src, str(dst))
+    for index in range(task.copies_per_worker):
+        dst = task.run_dir / f"w{worker_id:02d}_copy{index:03d}.bin"
+        if tracker is not None:
+            tracker.start(worker_id, dst)
+        task.copy_fn(task.src, str(dst))
+        if tracker is not None:
+            tracker.finish(worker_id, task.size_bytes)
         dst.unlink()
 
 
-def run_once(
-    copy_fn: Callable[[str, str], str],
-    src: str,
-    run_dir: Path,
-    workers: int,
-    copies_per_worker: int,
-) -> float:
+def run_once(task: CopyTask) -> float:
     """Run one timed benchmark pass and return elapsed seconds.
 
     Returns:
         Elapsed wall-clock time in seconds.
 
     """
-    started = time.perf_counter()
-    if workers == 1:
-        copy_worker(copy_fn, src, run_dir, 0, copies_per_worker)
+    if not task.show_progress:
+        started = time.perf_counter()
+        if task.workers == 1:
+            copy_worker(0, task)
+            return time.perf_counter() - started
+
+        with ThreadPoolExecutor(max_workers=task.workers) as executor:
+            futures = [
+                executor.submit(copy_worker, worker, task)
+                for worker in range(task.workers)
+            ]
+            for future in futures:
+                future.result()
         return time.perf_counter() - started
 
-    with ThreadPoolExecutor(max_workers=workers) as executor:
+    tracker = CopyProgressTracker()
+    total_bytes = task.size_bytes * task.workers * task.copies_per_worker
+    started = time.perf_counter()
+    with ThreadPoolExecutor(max_workers=task.workers) as executor:
         futures = [
-            executor.submit(
-                copy_worker,
-                copy_fn,
-                src,
-                run_dir,
-                worker,
-                copies_per_worker,
-            )
-            for worker in range(workers)
+            executor.submit(copy_worker, worker, task, tracker)
+            for worker in range(task.workers)
         ]
+        with tqdm(
+            total=total_bytes,
+            unit="B",
+            unit_scale=True,
+            desc="bytes",
+            leave=False,
+        ) as bar:
+            while not all(future.done() for future in futures):
+                bar.n = min(tracker.snapshot(), total_bytes)
+                bar.refresh()
+                time.sleep(0.05)
+            bar.n = total_bytes
+            bar.refresh()
         for future in futures:
             future.result()
 
@@ -197,9 +292,7 @@ def run_once(
 def time_method(
     method_name: str,
     copy_fn: Callable[[str, str], str],
-    src: str,
-    bench_dir: Path,
-    config: RunConfig,
+    context: BenchContext,
 ) -> float:
     """Time one copy method and return the median run time.
 
@@ -208,16 +301,25 @@ def time_method(
 
     """
     timings: List[float] = []
-    for repeat_index in range(config.repeats):
-        run_dir = bench_dir / f"{method_name}_run{repeat_index:02d}"
+    progress = tqdm(
+        range(context.config.repeats),
+        desc=method_name,
+        unit="run",
+        leave=False,
+    )
+    for repeat_index in progress:
+        run_dir = context.bench_dir / f"{method_name}_run{repeat_index:02d}"
         run_dir.mkdir()
-        elapsed = run_once(
-            copy_fn,
-            src,
-            run_dir,
-            config.workers,
-            config.copies_per_worker,
+        task = CopyTask(
+            copy_fn=copy_fn,
+            src=context.src,
+            run_dir=run_dir,
+            workers=context.config.workers,
+            copies_per_worker=context.config.copies_per_worker,
+            size_bytes=context.size_bytes,
+            show_progress=context.config.show_copy_progress,
         )
+        elapsed = run_once(task)
         timings.append(elapsed)
         run_dir.rmdir()
     return statistics.median(timings)
@@ -237,20 +339,17 @@ def benchmark_case(
     src = bench_dir / f"src_{size_mb}mb.bin"
     generate_file(src, size_mb)
 
-    source = str(src)
-    baseline_seconds = time_method(
-        "shutil",
-        shutil.copyfile,
-        source,
-        bench_dir,
-        config,
+    context = BenchContext(
+        src=str(src),
+        bench_dir=bench_dir,
+        config=config,
+        size_bytes=size_mb * MB_BYTES,
     )
+    baseline_seconds = time_method("shutil", shutil.copyfile, context)
     speedcopy_seconds = time_method(
         "speedcopy",
         speedcopy.copyfile,
-        source,
-        bench_dir,
-        config,
+        context,
     )
 
     src.unlink()
@@ -320,10 +419,23 @@ def main() -> None:
         msg = f"Path is not an existing directory: {share_path}"
         raise NotADirectoryError(msg)
 
+    copies_per_size = (
+        args.repeats * args.workers * args.copies_per_worker * 2
+    )
+    total_mb = sum(args.sizes_mb) * copies_per_size
+    print(
+        f"Each size is copied {copies_per_size}x (repeats x workers x "
+        "copies-per-worker x 2 methods); total data to move across all "
+        f"sizes: {total_mb} MB. Large sizes with default repeats/copies "
+        "can take a while - lower --repeats/--copies-per-worker to "
+        "speed this up."
+    )
+
     config = RunConfig(
         repeats=args.repeats,
         workers=args.workers,
         copies_per_worker=args.copies_per_worker,
+        show_copy_progress=args.copy_progress,
     )
 
     sizes = args.sizes_mb
@@ -335,7 +447,7 @@ def main() -> None:
                 bench_dir=bench_dir,
                 config=config,
             )
-            for size_mb in sizes
+            for size_mb in tqdm(sizes, desc="sizes", unit="MB")
         ]
     print_results(results, args.workers)
 
