@@ -75,7 +75,7 @@ jobs:
           enable-cache: true
           python-version: ${{ matrix.python-version }}
       - name: Install environment
-        run: uv sync --locked --all-extras --no-install-project
+        run: uv sync --locked --all-extras
       - name: Run tests
         run: uv run --no-sync pytest
 
